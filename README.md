@@ -160,3 +160,66 @@ Set `JWT_SECRET` and `GROQ_API_KEY` in `backend/.env` (optional `GROQ_MODEL`, de
 | GET/PATCH | `/api/community/admin/reports?status=&source=` | admin triage queue (user + AI flags), resolve/dismiss |
 
 See `backend/README.md` for details and curl examples.
+
+## Django port (`django/`)
+
+The same app on one server: Django serves the JSON API **and** the pages. The
+API keeps the Express contract route-for-route (same paths, `{ success, ... }`
+envelopes, status codes, JWT scheme, rate limits and `Retry-After` headers), and
+the pages render pixel-identically to the React original — `frontend/src/**` is
+the design contract and is never edited for the port.
+
+MongoDB becomes SQLite, and the browser gets no bundler and no React:
+`django/static/js/core/react.js` is a small stand-in runtime (`h`, hooks, keyed
+reconciler, effects), `scripts/transpile.mjs` turns the untouched JSX into
+browser modules, and shims replace `lucide-react`, `framer-motion`,
+`react-markdown` and `@heroui/react`.
+
+### Run it
+
+```bash
+cd django
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+cp .env.example .env                       # dev placeholders; fill in AI keys if wanted
+.venv/bin/python manage.py migrate
+.venv/bin/python manage.py seed            # 14 flavours + 14 distros + admin account
+node scripts/transpile.mjs                 # frontend/src JSX  -> static/js/app/*.js
+node scripts/build_css.mjs                 # static/css/tailwind.css + index.css
+node scripts/vendor_three.mjs              # three.js + the addons the 3D hero imports
+node scripts/gen_icons.mjs                 # static/js/core/icons.js from lucide-react
+.venv/bin/python manage.py runserver 8010
+```
+
+Then open `http://localhost:8010`. Every page route — `/`, `/flavours`,
+`/distro/:id`, `/compare`, `/login`, `/chat`, `/community`, `/community/:id`,
+`/quiz` — is served by the SPA shell and routed client-side with pushState,
+exactly like the Vite app. `GROQ_API_KEY` (chat) and `TYPESAFE_API_KEY` (quiz
+verdict, channel suggestions) work the same as in `backend/.env`; without them
+those endpoints degrade or fail with the same messages.
+
+`CLIENT_URL` (default `http://localhost:5173`) is the one origin allowed to call
+`/api` cross-origin, mirroring `cors({ origin: CLIENT_URL })` — so the Vite dev
+server can be pointed at this backend with
+`VITE_API_URL=http://localhost:8010/api` for side-by-side comparison.
+
+### After changing anything
+
+| You edited | Re-run |
+|---|---|
+| `frontend/src/**` (pages, components, services) | `node django/scripts/transpile.mjs` |
+| `frontend/src/index.css` or the Tailwind config | `node django/scripts/build_css.mjs` |
+| the 3D hero's three.js imports | `node django/scripts/vendor_three.mjs` |
+| icon usage in a component | `node django/scripts/gen_icons.mjs` |
+| `django/apps/**` | nothing — but restart `runserver` if you use `--noreload` |
+
+### Checking the port
+
+- `http://localhost:8010/static/_probe.html` runs the runtime self-test (21
+  checks over rendering, keyed diffing, controlled inputs, refs, effects and
+  event-flush ordering) and prints PASS/FAIL lines; results also sit in
+  `window.__probe`.
+- Compare a page against the React app: load the same route on both, diff the
+  visible text and the tag/class census. The ported pages are DOM-for-DOM equal
+  (node counts and every class list match); the only text that can drift is
+  relative timestamps like "2m ago".
+

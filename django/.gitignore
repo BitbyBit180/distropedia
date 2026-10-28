@@ -1,0 +1,8 @@
+# Local virtualenv, database and secrets — regenerate with
+# `python -m venv .venv && .venv/bin/pip install -r requirements.txt`,
+# `manage.py migrate && manage.py seed`, and copy .env.example to .env.
+.venv/
+.env
+db.sqlite3
+__pycache__/
+*.pyc

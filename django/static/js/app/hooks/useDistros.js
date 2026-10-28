@@ -1,0 +1,48 @@
+import { useEffect, useState } from "dp/core/react.js";
+import { DISTROS, POPULAR_DISTROS } from "../data/distros.js";
+import {
+  getDistros,
+  getPopularDistros,
+  getCategories,
+  peekDistros,
+  peekPopularDistros,
+  peekCategories
+} from "../services/distroApi.js";
+const DEFAULT_CATEGORIES = [
+  "All",
+  "Debian / Ubuntu",
+  "Arch",
+  "Red Hat / Fedora",
+  "Security",
+  "Independent"
+];
+function useDistros() {
+  const [distros, setDistros] = useState(() => peekDistros() || DISTROS);
+  const [popularDistros, setPopularDistros] = useState(
+    () => peekPopularDistros() || POPULAR_DISTROS
+  );
+  const [categories, setCategories] = useState(() => peekCategories() || DEFAULT_CATEGORIES);
+  const [loading, setLoading] = useState(
+    () => !peekDistros() || !peekPopularDistros() || !peekCategories()
+  );
+  useEffect(() => {
+    let cancelled = false;
+    Promise.allSettled([getDistros(), getPopularDistros(), getCategories()]).then(
+      ([d, p, c]) => {
+        if (cancelled) return;
+        if (d.status === "fulfilled" && d.value?.length) setDistros(d.value);
+        if (p.status === "fulfilled" && p.value?.length) setPopularDistros(p.value);
+        if (c.status === "fulfilled" && c.value?.length) setCategories(c.value);
+        setLoading(false);
+      }
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return { distros, popularDistros, categories, loading };
+}
+export {
+  DEFAULT_CATEGORIES,
+  useDistros
+};
