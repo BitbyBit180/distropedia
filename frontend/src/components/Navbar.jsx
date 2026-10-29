@@ -34,12 +34,18 @@ export default function Navbar({
 
   const go = (path) => {
     setMenuOpen(false);
-    onNavigate?.(path);
+    if (typeof onNavigate === 'function') {
+      onNavigate(path);
+    } else if (typeof window !== 'undefined') {
+      window.location.href = path;
+    }
   };
 
   const flavourLinks = [
     { label: 'Compare', path: '/compare' },
     { label: 'Find Your Distro', path: '/quiz' },
+    { label: 'Learn Linux', path: '/learn' },
+    { label: 'Linux Lab', path: '/lab' },
     { label: 'Community', path: '/community' },
     { label: 'AI Chat', path: '/chat' },
   ];
@@ -48,6 +54,8 @@ export default function Navbar({
     { label: 'Distros', path: '/flavours' },
     { label: 'Compare', path: '/compare' },
     { label: 'Find Your Distro', path: '/quiz' },
+    { label: 'Learn Linux', path: '/learn' },
+    { label: 'Linux Lab', path: '/lab' },
     { label: 'Community', path: '/community' },
     { label: 'AI Chat', path: '/chat' },
   ];

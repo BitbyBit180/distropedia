@@ -106,6 +106,9 @@ const ChatPage = lazyWithRetry(() => import('./pages/ChatPage.jsx'));
 const CommunityPage = lazyWithRetry(() => import('./pages/CommunityPage.jsx'));
 const PostDetailPage = lazyWithRetry(() => import('./pages/PostDetailPage.jsx'));
 const QuizPage = lazyWithRetry(() => import('./pages/QuizPage.jsx'));
+const LinuxLabPage = lazyWithRetry(() => import('./pages/LinuxLabPage.jsx'));
+const LearnLinuxPage = lazyWithRetry(() => import('./pages/LearnLinuxPage.jsx'));
+const DashboardPage = lazyWithRetry(() => import('./pages/DashboardPage.jsx'));
 
 function normalizeRoute(pathname, hash) {
   const path = (pathname || '').toLowerCase();
@@ -142,6 +145,15 @@ function normalizeRoute(pathname, hash) {
   }
   if (path === '/quiz' || h === '#/quiz') {
     return '/quiz';
+  }
+  if (path === '/learn' || path.startsWith('/learn?') || path.startsWith('/learn/') || h === '#/learn' || h.startsWith('#/learn?') || h.startsWith('#/learn/')) {
+    return path.startsWith('/learn') ? pathname + window.location.search : h.replace('#', '');
+  }
+  if (path === '/lab' || path.startsWith('/lab?') || h === '#/lab' || h.startsWith('#/lab?')) {
+    return '/lab';
+  }
+  if (path === '/dashboard' || path.startsWith('/dashboard?') || h === '#/dashboard' || h.startsWith('#/dashboard?')) {
+    return '/dashboard';
   }
   return '/';
 }
@@ -189,6 +201,9 @@ export default function App() {
   const communityQuery = isCommunity ? currentRoute.slice('/community'.length) : '';
   const isPostDetail = currentRoute.startsWith('/community/');
   const postId = isPostDetail ? currentRoute.replace('/community/', '').split('/')[0] : null;
+  const isLab = currentRoute === '/lab' || currentRoute.startsWith('/lab');
+  const isLearn = currentRoute === '/learn' || currentRoute.startsWith('/learn');
+  const isDashboard = currentRoute === '/dashboard' || currentRoute.startsWith('/dashboard');
 
   return (
     <div className="min-h-screen bg-transparent text-[#F0F4F8]">
@@ -208,6 +223,12 @@ export default function App() {
         <ChatPage onNavigate={navigate} />
       ) : isQuiz ? (
         <QuizPage onNavigate={navigate} />
+      ) : isLearn ? (
+        <LearnLinuxPage onNavigate={navigate} />
+      ) : isLab ? (
+        <LinuxLabPage onNavigate={navigate} />
+      ) : isDashboard ? (
+        <DashboardPage onNavigate={navigate} />
       ) : isCommunity ? (
         <CommunityPage query={communityQuery} onNavigate={navigate} />
       ) : isPostDetail ? (
