@@ -28,6 +28,24 @@ class User(AbstractBaseUser):
     class Meta:
         db_table = "users"
 
+    @property
+    def is_staff(self):
+        return bool(self.is_admin)
+
+    @property
+    def is_superuser(self):
+        return bool(self.is_admin)
+
+    @property
+    def is_active(self):
+        return True
+
+    def has_perm(self, perm, obj=None):
+        return bool(self.is_admin)
+
+    def has_module_perms(self, app_label):
+        return bool(self.is_admin)
+
     def save(self, *args, **kwargs):
         if self.email:
             self.email = self.email.strip().lower()

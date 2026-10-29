@@ -4,6 +4,7 @@ Route order matters: static segments (`popular`, `categories`, `compare`) are
 matched before `<key>`, so those words are never treated as a distro id.
 """
 
+from django.contrib import admin
 from django.urls import re_path
 
 from apps.accounts import api as accounts_api
@@ -11,11 +12,15 @@ from apps.catalogue import api as catalogue_api
 from apps.chat import api as chat_api
 from apps.community import api as community_api
 from apps.core.views import api_not_found, health
+from apps.learning import api as learning_api
 from apps.quiz import api as quiz_api
 
 SLASH = r"/?$"
 
 urlpatterns = [
+    # ---- admin ----
+    re_path(r"^admin/", admin.site.urls),
+
     # ---- health ----
     re_path(r"^api/health" + SLASH, health),
 
@@ -76,6 +81,39 @@ urlpatterns = [
         r"^api/community/comments/(?P<comment_id>[^/]+)/vote" + SLASH, community_api.comment_vote
     ),
     re_path(r"^api/community/comments/(?P<comment_id>[^/]+)" + SLASH, community_api.comment_detail),
+
+    # ---- learning platform (plans, lessons, exercises, assessments, dashboard) ----
+    re_path(r"^api/learning/dashboard" + SLASH, learning_api.user_dashboard),
+    re_path(r"^api/learning/plans/(?P<slug>[^/]+)" + SLASH, learning_api.plan_detail),
+    re_path(r"^api/learning/plans" + SLASH, learning_api.plans_list),
+    re_path(
+        r"^api/learning/lessons/(?P<lesson_id>[^/]+)/complete" + SLASH,
+        learning_api.complete_lesson,
+    ),
+    re_path(
+        r"^api/learning/lessons/(?P<lesson_id>[^/]+)" + SLASH,
+        learning_api.lesson_detail,
+    ),
+    re_path(
+        r"^api/learning/exercises/(?P<exercise_id>[^/]+)/submit" + SLASH,
+        learning_api.submit_exercise,
+    ),
+    re_path(
+        r"^api/learning/exercises/(?P<exercise_id>[^/]+)/history" + SLASH,
+        learning_api.exercise_history,
+    ),
+    re_path(
+        r"^api/learning/assessments/(?P<assessment_id>[^/]+)/submit" + SLASH,
+        learning_api.submit_assessment,
+    ),
+    re_path(
+        r"^api/learning/assessments/(?P<assessment_id>[^/]+)/history" + SLASH,
+        learning_api.assessment_history,
+    ),
+    re_path(
+        r"^api/learning/assessments/(?P<assessment_id>[^/]+)" + SLASH,
+        learning_api.assessment_detail,
+    ),
 
     # ---- quiz (public) ----
     re_path(r"^api/quiz/recommend" + SLASH, quiz_api.recommend),
