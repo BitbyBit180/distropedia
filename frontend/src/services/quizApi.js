@@ -4,7 +4,7 @@
 // anywhere, the verdict is fully AI. Throws on any failure so the caller
 // can show an error with a retry.
 
-// Backend base URL. In dev, Vite proxies /api -> http://localhost:5000 (see vite.config.js).
+// API base URL. In dev, Vite proxies /api -> http://localhost:8010 (see vite.config.js).
 // In production set VITE_API_URL=https://your-api-host/api
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 

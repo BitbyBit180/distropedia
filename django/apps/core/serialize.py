@@ -1,13 +1,12 @@
-"""Shared JSON shaping — reproduces the Mongoose toJSON transforms so the API
-payloads keep the frontend's key names (id / init / installGuide) and hide the
-database internals.
+"""Shared JSON shaping — API payloads keep the frontend's key names
+(id / init / installGuide) and hide the database internals.
 """
 
 from datetime import datetime, timezone
 
 
 def iso(value):
-    """Mongo serialises dates as `2026-10-28T19:37:00.123Z`; keep that format."""
+    """Dates serialise as ISO-8601 with ms and Z: `2026-10-28T19:37:00.123Z`."""
     if value is None:
         return None
     if isinstance(value, str):

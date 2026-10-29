@@ -31,7 +31,7 @@ criteria[d.id] = `${d.name} — ${d.tagline} | category | desktop | release | mi
 
 ## Files involved
 - Frontend: `src/pages/QuizPage.jsx`, `src/utils/distroQuiz.js`, `src/services/quizApi.js`.
-- Backend: `src/routes/quizRoutes.js` (rate-limited `quizLimiter` 20/m), `src/controllers/quizController.js`, `src/services/quizAgent.js`, `src/services/jevClient.js`, `src/data/distros.js` (catalogue fallback).
+- API: `django/apps/quiz/api.py` (rate-limited 20/m), `django/apps/ai/quiz_agent.py`, `django/apps/ai/jev_client.py`, `django/apps/catalogue/static_data.py` (catalogue fallback).
 
 ## How to demo / viva line
-"There is no scoring — Jev reads the answers and chooses from all 14 distros in one Choice judgment; percents are its probabilities, strengths are catalogue taglines." Open `frontend/src/utils/distroQuiz.js` (no scores) and `backend/src/services/quizAgent.js:59`.
+"There is no scoring — Jev reads the answers and chooses from all 14 distros in one Choice judgment; percents are its probabilities, strengths are catalogue taglines." Open `frontend/src/utils/distroQuiz.js` (no scores) and `django/apps/ai/quiz_agent.py`.

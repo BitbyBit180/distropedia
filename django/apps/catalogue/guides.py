@@ -1,7 +1,6 @@
 """
 Installation-guide builder — SINGLE SOURCE OF TRUTH for install content.
 
-Python port of backend/src/data/installGuide.js (byte-identical behaviour).
 
 Takes a distro object (either a Django Distro model instance with snake_case
 attrs or a plain dict with camelCase keys: `id`, `name`, `pkgMgr`, `basedOn`,

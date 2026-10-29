@@ -8,7 +8,7 @@ from django.conf import settings
 
 API_URL = "https://api.typesafe.ai/v1/systemone"
 
-# Deliberate change from the Express port: the key now lives in django/.env.
+# The key is read from django/.env (see .env.example).
 NO_KEY_MESSAGE = "TYPESAFE_API_KEY is not configured. Add it to django/.env"
 
 

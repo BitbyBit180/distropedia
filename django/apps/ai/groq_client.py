@@ -12,7 +12,7 @@ from django.conf import settings
 
 API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
-# Deliberate change from the Express port: the key now lives in django/.env.
+# The key is read from django/.env (see .env.example).
 NO_KEY_MESSAGE = "GROQ_API_KEY is not configured. Add it to django/.env"
 
 # Up to 5 keys (GROQ_API_KEY with comma-separated lists plus GROQ_API_KEY_2 … _5,

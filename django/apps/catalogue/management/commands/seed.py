@@ -33,7 +33,7 @@ CAMEL_TO_DB = {
 
 
 def _to_db(entry):
-    """Same rename the Express seed did: id->distroId, init->initSystem,
+    """Rename to column names: id->distroId, init->initSystem,
     installation holds the guide (frontend keys stay id/init/installGuide)."""
     data = {CAMEL_TO_DB.get(k, k): v for k, v in entry.items()}
     data["init_system"] = data.get("init_system") or "systemd"
@@ -86,8 +86,8 @@ class Command(BaseCommand):
         Distro.objects.bulk_create([Distro(**doc) for doc in docs])
         Flavour.objects.bulk_create(
             [
-                # absent keys (angle, cardBg on some entries) take the column
-                # default, the way an undefined field did in Mongo.
+                # absent keys (angle, cardBg on some entries) take the
+                # column default rather than being stored as null.
                 Flavour(**{f: doc[f] for f in FLAVOUR_FIELDS if f in doc})
                 for doc in docs
             ]
@@ -103,7 +103,7 @@ class Command(BaseCommand):
         if user is None:
             user = User(email=email)
         user.name = user.name or "Admin"
-        # bcrypt, like the Express register controller used
+        # bcrypt at cost 10 — the same hasher the register endpoint uses
         user.password = make_password(opts["password"], hasher="bcrypt")
         user.is_admin = True
         user.save()

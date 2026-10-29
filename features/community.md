@@ -33,7 +33,7 @@ router.route('/posts').get(listPosts).post(postLimiter, createPost);
 
 ## Files involved
 - Frontend: `src/pages/CommunityPage.jsx`, `src/pages/PostDetailPage.jsx`, `src/services/communityApi.js`, `src/components/community/*` (`CommunityShell`, `CommunityNav`, `CommunitySidebar`, `PostCard`, `CommentItem`, `VotePill`, `NotificationBell`, `ReportButton`, `Avatar`), `src/utils/timeAgo.js`.
-- Backend: `src/routes/communityRoutes.js`, `src/controllers/communityController.js`, `src/models/Post.js|Comment.js|Vote.js|Report.js|Notification.js|AuditLog.js`, `src/services/moderationAgent.js|channelSuggestAgent.js`, `src/utils/auditLog.js`.
+- API: `django/apps/community/api.py`, `django/apps/community/models.py` (Post, Comment, Vote, Report, Notification, AuditLog), `django/apps/ai/moderation_agent.py|channel_suggest_agent.py`.
 
 ## How to demo / viva line
-"Channels are validated against flavours; votes are atomic; AI moderation fire-and-forget flags spam into the same queue as user reports." Open `backend/src/routes/communityRoutes.js:36` and `backend/src/services/moderationAgent.js`.
+"Channels are validated against flavours; votes are atomic; AI moderation fire-and-forget flags spam into the same queue as user reports." Open `django/apps/community/api.py` and `django/apps/ai/moderation_agent.py`.

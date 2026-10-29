@@ -30,7 +30,7 @@ const data = ids.map(id => byId.get(id)).filter(Boolean); // order preserved
 
 ## Files involved
 - Frontend: `src/pages/ComparePage.jsx`, `src/hooks/useCompare.js`, `src/hooks/useDistros.js`, `src/services/distroApi.js`.
-- Backend: `src/routes/distroRoutes.js` (`GET /compare` before `/:id` — order matters), `src/controllers/distroController.js`.
+- API: `django/apps/catalogue/api.py` (`GET /compare` is registered before `/:key` in `django/config/urls.py` — order matters).
 
 ## How to demo / viva line
-"Compare is a lean projection — only spec fields, max 4, order = requested order." Open `backend/src/controllers/distroController.js:46` and `frontend/src/hooks/useCompare.js`.
+"Compare is a lean projection — only spec fields, max 4, order = requested order." Open `django/apps/catalogue/api.py` and `frontend/src/hooks/useCompare.js`.

@@ -1,9 +1,8 @@
-"""Static catalogue fallback — the twin of `backend/src/data/distros.js`.
+"""Static catalogue fallback — mirrors `frontend/src/data/distros.js`.
 
-The Express controllers caught a DB failure and served the seeded JS array
-instead; here the same array lives in `data/distros.json`, generated once from
-that JS source (see `django/scripts/export_seed_data.mjs`) so both stacks read
-identical data.
+When the DB is unreachable the API serves this seeded array instead; it lives
+in `data/distros.json` so a DB outage (or a fresh database before
+`manage.py seed`) never breaks the API.
 """
 
 import json

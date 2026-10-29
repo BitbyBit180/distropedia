@@ -1,13 +1,11 @@
-"""bcryptjs-compatible password hashing.
+"""bcrypt password hashing at cost 10.
 
-The Express backend hashed passwords with `bcryptjs` at cost 10, which emits
-`$2b$10$…`. Django's own BCryptPasswordHasher is the same algorithm (name
-"bcrypt") but defaults to cost 12, so this subclass keeps the original work
-factor — a hash written here verifies there and vice versa.
+Django's BCryptPasswordHasher is the same algorithm but defaults to cost 12;
+this subclass pins the work factor to 10 so hashes read `$2b$10$…`.
 """
 
 from django.contrib.auth.hashers import BCryptPasswordHasher
 
 
-class BcryptJsPasswordHasher(BCryptPasswordHasher):
+class Bcrypt10PasswordHasher(BCryptPasswordHasher):
     iterations = 10

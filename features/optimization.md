@@ -21,8 +21,8 @@ fetched all ~9MB immediately.
   but still shipping in every build).
 
 **Files:** `frontend/public/*.webp`, `frontend/assets-raw/*`,
-`frontend/src/data/distros.js` + `backend/src/data/distros.js` (`cardBg`
-paths), re-seeded Mongo so the API serves `.webp` URLs.
+`frontend/src/data/distros.js` + `django/apps/catalogue/data/distros.json` (`cardBg`
+paths), re-seeded so the API serves `.webp` URLs.
 
 **Verify:** `ls -lh frontend/public/` (~192KB total); `vite build` output
 `dist/` contains only `.webp`.
@@ -88,8 +88,7 @@ verdicts only — failures stay retryable).
 Browsers/CDNs cache the catalogue; authenticated routes untouched.
 Worst-case staleness 60s, and catalogue only changes on re-seed.
 
-**Files:** `backend/src/controllers/flavourController.js`,
-`backend/src/controllers/distroController.js`.
+**Files:** `django/apps/catalogue/api.py`.
 
 ---
 
@@ -102,15 +101,14 @@ posts the hot-sort aggregation + channel filter slow down without indexes.
 - Infinite scroll: sentinel div + `IntersectionObserver` (600px margin)
   auto-appends the next page; the button stays as fallback (no IO support,
   or a failed auto-load). `requestIdRef` guards stale responses.
-- Compound indexes `{channel: 1, createdAt: -1}` and
-  `{channel: 1, score: -1}` on `posts` — every feed query scopes by channel
-  first, then sorts. Mongoose auto-builds them on boot.
+- Compound indexes on `posts` (`channel` + `createdAt` / `score` desc) —
+  every feed query scopes by channel first, then sorts (Django `Meta.indexes`).
 - API already capped `limit ≤ 50`; feed never loads all at once by design.
 - Future (not done): list virtualization past thousands of rows; `$text`
   search instead of regex (regex can't use indexes).
 
 **Files:** `frontend/src/pages/CommunityPage.jsx`,
-`backend/src/models/Post.js`, `backend/src/controllers/communityController.js`
+`django/apps/community/models.py`, `django/apps/community/api.py`
 (unchanged — pagination already existed).
 
 ---
@@ -143,9 +141,9 @@ generic "thinking", and aborts the stream on chat switch. Legacy
 (typewriter path) if the stream dies before its first token. First token
 still waits on research (≤20s); streaming removed the *second* wait.
 
-**Files:** `backend/src/services/groqClient.js` (`chatCompletionStream`),
-`synthesizerAgent.js` (shared prompt builder + stream variant),
-`chatController.js` (`sendMessageStream`), `chatRoutes.js`,
+**Files:** `django/apps/ai/groq_client.py` (`chat_completion_stream`),
+`synthesizer_agent.py` (shared prompt builder + stream variant),
+`django/apps/chat/api.py` (`messages/stream`),
 `frontend/src/services/chatApi.js`, `pages/ChatPage.jsx`.
 
 ---
@@ -158,7 +156,7 @@ still waits on research (≤20s); streaming removed the *second* wait.
 **Fix:** `Promise.all` — same output shape and budget cap, typically ~2–4s
 instead of up to 8s.
 
-**File:** `backend/src/services/redditService.js`.
+**File:** `django/apps/ai/reddit.py`.
 
 ---
 
@@ -172,8 +170,8 @@ cooled keys sort last so concurrent requests spread across healthy keys.
 Other failures throw immediately (no double-spend). Secrets never logged
 (`key#N` only). Both chat endpoints' 503 pre-checks respect the pool.
 
-**Files:** `backend/src/services/groqClient.js`,
-`backend/src/controllers/chatController.js`, `backend/.env.example`.
+**Files:** `django/apps/ai/groq_client.py`,
+`django/apps/chat/api.py`, `django/.env.example`.
 
 ---
 

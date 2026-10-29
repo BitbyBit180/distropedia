@@ -1,9 +1,8 @@
 """Auth endpoints — register / login / google / me / password reset.
 
-Validation order, message wording and status codes follow
-backend/src/controllers/authController.js. Passwords are bcrypt-hashed like the
-Node version did (cost 10), and tokens are HS256 JWTs carrying `{ id }` with a
-7-day expiry.
+Validation order, message wording and status codes are part of the API
+contract the frontend relies on. Passwords are bcrypt-hashed (cost 10), and
+tokens are HS256 JWTs carrying `{ id }` with a 7-day expiry.
 """
 
 import hashlib
@@ -48,7 +47,7 @@ def _find_reset_user(token):
     ).first()
     if user is None:
         raise ApiError("Code is incorrect or expired", 400)
-    # Constant-time compare on the stored hash, as the Node controller did.
+    # Constant-time compare on the stored hash.
     if not secrets.compare_digest(user.reset_token_hash.encode(), digest.encode()):
         raise ApiError("Code is incorrect or expired", 400)
     return user

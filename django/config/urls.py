@@ -1,8 +1,7 @@
-"""Project URL table — the Express route table, ported one-for-one.
+"""Project URL table — the whole /api surface.
 
-Route order matters exactly as it did in Express: static segments
-(`popular`, `categories`, `compare`) are matched before `<id>`, so those words
-are never treated as a distro id.
+Route order matters: static segments (`popular`, `categories`, `compare`) are
+matched before `<key>`, so those words are never treated as a distro id.
 """
 
 from django.urls import re_path
@@ -11,7 +10,7 @@ from apps.accounts import api as accounts_api
 from apps.catalogue import api as catalogue_api
 from apps.chat import api as chat_api
 from apps.community import api as community_api
-from apps.core.views import api_not_found, asset, health, spa_shell
+from apps.core.views import api_not_found, health
 from apps.quiz import api as quiz_api
 
 SLASH = r"/?$"
@@ -81,16 +80,6 @@ urlpatterns = [
     # ---- quiz (public) ----
     re_path(r"^api/quiz/recommend" + SLASH, quiz_api.recommend),
 
-    # ---- anything else under /api -> the Express notFound JSON envelope ----
-    # `app.use('/api', router)` also matched a bare /api, so the catch-all does too.
+    # ---- anything not under /api -> 404 (the API is the only thing served) ----
     re_path(r"^api(?:/|$)", api_not_found),
-
-    # ---- root-relative assets the markup still points at (public/ equivalents) ----
-    re_path(
-        r"^(?P<rel_path>install-guide/[^/]+|tux/[^/]+|[A-Za-z0-9._-]+\.(?:webp|svg|png|jpe?g|ico))$",
-        asset,
-    ),
-
-    # ---- every page route serves the SPA shell (client-side router owns it) ----
-    re_path(r"^.*$", spa_shell, name="spa"),
 ]

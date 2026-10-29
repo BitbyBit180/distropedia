@@ -3,8 +3,8 @@ one vote per user per target, reports (user- or AI-generated), notifications
 and the append-only admin audit log.
 
 `score` stays denormalised on the target rows and is moved by
-apps.community.voting.apply_vote — the same trade-off the Mongo version made
-(no transaction; the unique vote index keeps the write idempotent).
+apps.community.voting.apply_vote — a deliberate trade-off (no transaction; the
+unique vote index keeps the write idempotent).
 """
 
 from django.db import models

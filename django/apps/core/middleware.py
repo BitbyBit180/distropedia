@@ -1,9 +1,9 @@
-"""CORS for the API, matching the Express `cors({ origin: CLIENT_URL })`.
+"""CORS for the API — only CLIENT_URL (the Vite dev server) is allowed.
 
-The Django app serves pages and API from one origin, so this only matters when
-the old Vite dev server (or another origin) calls the API directly. Like the
-`cors` package, a preflight is answered here — before routing, so it never
-reaches authentication or a 404 — with 204 plus the Access-Control headers.
+The API is normally consumed same-origin, so this only matters when the Vite
+dev server (or another origin) calls the API directly. A preflight is answered
+here — before routing, so it never reaches authentication or a 404 — with 204
+plus the Access-Control headers.
 """
 
 from django.http import HttpResponse

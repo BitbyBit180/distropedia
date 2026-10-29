@@ -1,4 +1,4 @@
-"""Reset-token delivery — the mailer.js twin.
+"""Reset-token delivery.
 
 Two modes, selected by RESET_DELIVERY (smtp when SMTP_HOST is set, otherwise
 console). In production with no SMTP configured delivery refuses loudly rather
@@ -55,7 +55,7 @@ def deliver_reset_token(email, token):
         print(f"[auth] reset email sent to {email}", flush=True)
         return
 
-    if settings.NODE_ENV == "production":
+    if settings.APP_ENV == "production":
         raise RuntimeError(
             "Password-reset email is not configured. Set SMTP_HOST/USER/PASS in django/.env."
         )

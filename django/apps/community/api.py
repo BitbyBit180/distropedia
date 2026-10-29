@@ -1,10 +1,9 @@
 """Community API — posts, threaded comments, votes, stats, reports,
 notifications and the admin audit trail.
 
-Everything here sits behind `protect` in Express, so every route is auth=True;
-the admin routes additionally require requireAdmin. Messages, status codes,
-pagination limits and optimistic-UI payload shapes match
-backend/src/controllers/communityController.js.
+Every route is auth=True (the admin routes additionally require
+requireAdmin). Messages, status codes, pagination limits and optimistic-UI
+payload shapes are the contract the frontend relies on.
 """
 
 import math
@@ -27,7 +26,7 @@ from config import settings
 
 
 def _page_params(request, default_limit, max_limit=50):
-    """page/limit parsing with the same floors and ceilings Express applied."""
+    """page/limit parsing with fixed floors and ceilings."""
     try:
         page = max(int(request.GET.get("page", "1") or 1), 1)
     except (TypeError, ValueError):

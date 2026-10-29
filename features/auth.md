@@ -29,12 +29,12 @@ res.json({ success: true, message: 'If an account exists...' });
 
 ## Files involved
 - Frontend: `src/pages/AuthPage.jsx` (`OtpInput`, `ForgotResetView`, themed Google button), `src/hooks/useAuth.js`, `src/services/authApi.js` (`GOOGLE_CLIENT_ID` flag).
-- Backend: `src/routes/authRoutes.js` (all with `authLimiter`), `src/controllers/authController.js`, `src/models/User.js` (`passwordHash` nullable, `googleId` unique+sparse, hides secrets), `src/middleware/authMiddleware.js` (`protect`, `requireAdmin`), `src/utils/mailer.js`.
+- API: `django/apps/accounts/api.py` (every route behind `authLimiter`), `django/apps/accounts/models.py` (`password_hash` nullable, `google_id` unique, hides secrets), `django/apps/core/security.py` (`protect`, `requireAdmin`), `django/apps/core/mailer.py`.
 
 ## Sign in with Google (One Tap, no popup window)
 - Themed "Continue with Google" button (hidden without `VITE_GOOGLE_CLIENT_ID`) opens Google's inline account chooser (`google.accounts.id.prompt`); the ID token goes straight to `POST /api/auth/google { credential }`.
 - Backend verifies via `tokeninfo` (audience, `email_verified`, expiry) and links **by verified email**: same email = same account (password keeps working); new email = passwordless account. No client secret needed anywhere.
-- Setup: `GOOGLE_CLIENT_ID` in `backend/.env` + `VITE_GOOGLE_CLIENT_ID` in frontend env (rebuild); origin in Google Console → Authorized JavaScript origins.
+- Setup: `GOOGLE_CLIENT_ID` in `django/.env` + `VITE_GOOGLE_CLIENT_ID` in frontend env (rebuild); origin in Google Console → Authorized JavaScript origins.
 
 ## How to demo / viva line
-"Passwords are bcrypt-hashed, tokens are JWT 7d, reset codes are hashed OTPs with constant-time compare." Open `backend/src/controllers/authController.js:42` and `backend/src/middleware/authMiddleware.js:6`.
+"Passwords are bcrypt-hashed, tokens are JWT 7d, reset codes are hashed OTPs with constant-time compare." Open `django/apps/accounts/api.py` and `django/apps/core/security.py`.

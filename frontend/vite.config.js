@@ -7,9 +7,9 @@ export default defineConfig({
   server: {
     allowedHosts: ['unregenerable-booker-subsibilantly.ngrok-free.dev'],
     proxy: {
-      // Frontend calls /api/... -> Express backend on :5000 (see backend/)
+      // Frontend calls /api/... -> Django API backend on :8010 (see django/)
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:8010',
         changeOrigin: true,
       },
     },

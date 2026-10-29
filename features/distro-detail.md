@@ -26,7 +26,7 @@ Key snippets:
 const updateCmd = pkgMgr==='apt' ? 'sudo apt update && sudo apt upgrade -y'
   : pkgMgr==='pacman' ? 'sudo pacman -Syu' : ...;
 
-// Distro.js — the init gotcha (init is a reserved Mongoose method)
+# catalogue/models.py — the field mapping (id/init/installGuide <-> distroId/initSystem/installation)
 ret.id = ret.distroId; ret.init = ret.initSystem; ret.installGuide = ret.installation;
 
 // DistroDetailPage.jsx:37 — API sends string keys, client maps to icons
@@ -35,7 +35,7 @@ const MODE_ICONS = { laptop: Laptop, split: Split, box: Box };
 
 ## Files involved
 - Frontend: `src/pages/DistroDetailPage.jsx`, `src/hooks/useDistro.js`, `src/data/installGuide.js` (offline fallback `getInstallationData`), `public/install-guide/*` (15 images).
-- Backend: `src/routes/distroRoutes.js`, `src/controllers/distroController.js`, `src/models/Distro.js`, `src/data/installGuide.js`, `src/utils/seed.js` (bakes `installation` into DB).
+- API: `django/apps/catalogue/api.py`, `django/apps/catalogue/models.py`, `django/apps/catalogue/guides.py` (guide builder), `django/apps/catalogue/management/commands/seed.py` (bakes `installation` into the DB).
 
 ## How to demo / viva line
-"Guides live in Mongo as `installation`, served as `installGuide`. Commands adapt to the package manager." Open `backend/src/data/installGuide.js:13` and `backend/src/models/Distro.js:76`.
+"Guides live in the DB as `installation`, served as `installGuide`. Commands adapt to the package manager." Open `django/apps/catalogue/guides.py` and `django/apps/catalogue/models.py`.

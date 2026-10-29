@@ -1,8 +1,8 @@
 """GET/POST/PUT/DELETE for /api/flavours and /api/distros.
 
 Response envelopes, query-parameter handling, status codes and Cache-Control
-values mirror the Express controllers one-for-one, including the `id` / `init`
-/ `installGuide` <-> `distro_id` / `init_system` / `installation` translation.
+values are the API contract, including the `id` / `init` / `installGuide`
+<-> `distro_id` / `init_system` / `installation` translation.
 """
 
 from apps.catalogue.models import Distro, Flavour
@@ -17,7 +17,7 @@ CATEGORY_CACHE = "public, max-age=300, stale-while-revalidate=600"
 
 
 def _camel(value, optional_angle=True):
-    """Shape a row like the Mongoose toJSON transform did."""
+    """Shape a row for the API: frontend key names, internals hidden."""
     data = {
         "distroId": value.distro_id,
         "name": value.name,
@@ -33,7 +33,7 @@ def _camel(value, optional_angle=True):
         "preview": value.preview or "",
         "id": value.distro_id,
     }
-    # Mongo omitted an absent `angle`; keep that so payloads match byte-for-byte.
+    # An absent `angle` is omitted entirely rather than sent as null.
     if value.angle is not None:
         data["angle"] = value.angle
     if hasattr(value, "init_system"):
@@ -56,7 +56,7 @@ def _camel(value, optional_angle=True):
 
 
 def _to_db(body, *, strip_id=False, allow_init=True):
-    """Frontend keys -> database columns (the Express `toDB` helper)."""
+    """Frontend keys -> database columns."""
     data = dict(body or {})
     mapped = {}
     if data.get("id") and not data.get("distroId"):
@@ -96,7 +96,7 @@ def _to_db(body, *, strip_id=False, allow_init=True):
     for key, column in fields.items():
         if key in data:
             mapped[column] = data[key]
-    # Mongoose schema options: distroId is trimmed+lowercased, name trimmed.
+    # Column constraints: distroId is trimmed+lowercased, name trimmed.
     if isinstance(mapped.get("distro_id"), str):
         mapped["distro_id"] = mapped["distro_id"].strip().lower()
     if isinstance(mapped.get("name"), str):
@@ -109,7 +109,7 @@ def _to_db(body, *, strip_id=False, allow_init=True):
     return mapped
 
 
-# `required: [true, '…']` in the Mongoose schemas, checked the same way:
+# Required fields, checked the same way:
 # an empty/missing value on create (or on an update that touches the field)
 # is a 400 "Validation failed", not a 500.
 REQUIRED_COLUMNS = {"distro_id": "distroId", "name": "name"}

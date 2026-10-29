@@ -1,6 +1,6 @@
 """Accounts for the AI assistant + community.
 
-Same rules as the Mongo User: unique lowercase email, bcrypt password hash
+Rules: unique lowercase email, bcrypt password hash
 (never serialised), null/empty hash for Google-only accounts, admin flag, and a
 hashed single-use 6-digit reset token with an expiry.
 """

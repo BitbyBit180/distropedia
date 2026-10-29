@@ -1,5 +1,5 @@
-// Auth service — talks to the Express backend (POST /api/auth/*).
-// In dev, Vite proxies /api -> http://localhost:5000 (see vite.config.js).
+// Auth service — talks to the Django API (POST /api/auth/*).
+// In dev, Vite proxies /api -> http://localhost:8010 (see vite.config.js).
 // In production set VITE_API_URL=https://your-api-host/api
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 

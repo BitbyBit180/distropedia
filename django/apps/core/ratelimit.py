@@ -1,6 +1,5 @@
-"""In-memory sliding-window limiter — same algorithm, presets and messages as
-backend/src/middleware/rateLimit.js (single process; swap for Redis if the app
-ever scales out).
+"""In-memory sliding-window limiter (single process; swap for Redis if the
+app ever scales out).
 """
 
 import threading
@@ -32,7 +31,7 @@ def _sweep(now):
 
 
 def identity(request, user):
-    """req.user?._id || req.ip — matches the Express default key."""
+    """User id when logged in, else the client IP."""
     if user is not None:
         return str(user.pk)
     forwarded = request.META.get("HTTP_X_FORWARDED_FOR", "")

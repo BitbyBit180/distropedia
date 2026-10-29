@@ -1,7 +1,7 @@
 # Linux Distro Hub (DistroPedia) — Complete Project Explanation
 
 > Presentation-ready walkthrough of every folder and file.
-> Stack: **MERN — MongoDB + Express + React + Node.js**
+> Stack: **React (Vite) frontend + Django (SQLite) API backend**
 
 ## 1. Project Overview — What is this?
 
@@ -14,28 +14,34 @@
 - **AI Chat — DistroPedia AI**: login-protected assistant using Groq + Reddit + web research
 - **Community**: Reddit-style forum with per-distro channels, posts, threaded comments, votes, reports, notifications, admin moderation
 
-No react-router — custom `pushState` router. No SDKs for AI — plain `fetch` to Groq / TypeSafe.
+No react-router — custom `pushState` router. No SDKs for AI — plain HTTP calls to Groq / TypeSafe.
 
 ### How the two halves connect
 
 ```
-Browser (React :5173) -- /api/* --> Express (:5000) --> MongoDB (linux_hub)
-        |                                     |
-        +-- falls back to local              +-- falls back to static data
-            static data if API down               if AI keys missing
+Browser (React :5173) -- /api/* --> Django (:8010) --> SQLite (django/db.sqlite3)
+        |                                  |
+        +-- falls back to local           +-- falls back to static data
+            static data if API down            if AI keys missing
 ```
 
-`frontend/vite.config.js` proxies `/api → http://localhost:5000` in dev.
-In production: `VITE_API_URL=https://your-api-host/api` + `CLIENT_URL` in backend `.env`.
+`frontend/vite.config.js` proxies `/api → http://localhost:8010` in dev.
+In production: `VITE_API_URL=https://your-api-host/api` + `CLIENT_URL` in `django/.env`.
 
 ### Run it (from repo root)
 
 ```bash
-npm run install:all   # install frontend + backend
-cp backend/.env.example backend/.env   # set MONGO_URI, JWT_SECRET, GROQ_API_KEY, TYPESAFE_API_KEY
-npm run seed           # seeds 14 flavours + 14 distro details
-npm run server         # backend → http://localhost:5000/api/health
-npm run dev            # frontend → http://localhost:5173
+# API backend (first run)
+cd django
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+cp .env.example .env        # set JWT_SECRET, GROQ_API_KEY, TYPESAFE_API_KEY (optional)
+.venv/bin/python manage.py migrate
+.venv/bin/python manage.py seed    # 14 flavours + 14 distros + admin account
+.venv/bin/python manage.py runserver 8010    # → http://localhost:8010/api/health
+
+# Frontend (second terminal, repo root)
+npm install --prefix frontend
+npm run dev                  # → http://localhost:5173
 ```
 
 ---
@@ -44,12 +50,12 @@ npm run dev            # frontend → http://localhost:5173
 
 | Path | Purpose |
 |---|---|
-| `package.json` | Orchestration only. No real code. Scripts: `dev`/`client` (frontend), `server` (backend), `build`/`preview`, `seed`, `install:all`. |
-| `README.md` | Full setup guide, folder tree, MongoDB backup commands, SMTP password-reset notes, complete API table (flavours, distros, quiz, auth, chat, community). |
-| `AGENTS.md` | Developer gotchas: port 5000 `EADDRINUSE` fix, `.env` requirement, `id/init/installGuide ↔ distroId/initSystem/installation` field mapping, custom router warning, fetch-then-fallback pattern, Groq-via-fetch, design tokens. |
-| `.gitignore` | Ignores `node_modules`, `.env`, build output. |
+| `package.json` | Frontend orchestration only. No real code. Scripts: `dev`/`client`, `build`, `preview`. |
+| `README.md` | Full setup guide, folder tree, SQLite backup notes, SMTP password-reset notes, complete API table (flavours, distros, quiz, auth, chat, community). |
+| `AGENTS.md` | Developer gotchas: `runserver` port 8010, `.env` requirement, `id/init/installGuide ↔ distroId/initSystem/installation` field mapping, custom router warning, fetch-then-fallback pattern, Groq-via-requests, design tokens. |
+| `.gitignore` | Ignores `node_modules`, `.env`, `db.sqlite3`, `.venv`, build output. |
 | `frontend/` | All client code (React 18 + Vite 6). See §3. |
-| `backend/` | All server code (Express + Mongoose). See §4. |
+| `django/` | All API code (Django 5 + SQLite). See §4. |
 
 ---
 
@@ -63,10 +69,10 @@ npm run dev            # frontend → http://localhost:5173
 |---|---|
 | `index.html` | Vite entry. Mounts `<div id="root">` → `src/main.jsx`. Loads JetBrains Mono font, favicon `/tux.svg`, title "DistroPedia". |
 | `package.json` | Name `linux-distro-hub-frontend`. Scripts `dev/build/preview`. Deps listed above; devDeps `vite, @vitejs/plugin-react, tailwind, postcss, autoprefixer`. |
-| `vite.config.js` | Vite + React plugin. Dev proxy `/api → http://localhost:5000`. `allowedHosts` for ngrok demos. |
+| `vite.config.js` | Vite + React plugin. Dev proxy `/api → http://localhost:8010` (the Django API). `allowedHosts` for ngrok demos. |
 | `tailwind.config.js` | Content: `index.html + src/**/* + @heroui/theme`. `darkMode: class`. Plugin `heroui()`. |
 | `postcss.config.js` | `tailwindcss + autoprefixer` processing. |
-| `vercel.json` | SPA fallback: all routes rewritten to `/index.html` so custom router works on refresh. |
+| `vercel.json` | SPA fallback: all routes rewritten to `/index.html` so the custom router works on refresh; `/api` rewrites to the deployed API host. |
 | `hero_bg.html` | Standalone prototype for the hero background (radial gradient + SVG noise + grain). Ported into `src/index.css`. Not imported at runtime. |
 | `test.html` | Discarded Tailwind-CDN mockup. Not imported. |
 | `flavours-inspiration .png` | Design reference image for Flavours page grid. Not imported. |
@@ -77,9 +83,8 @@ npm run dev            # frontend → http://localhost:5173
 |---|---|
 | `tux.svg` | Favicon + fallback Tux penguin logo. |
 | `tux/scene.gltf` + `scene.bin` + `license.txt` | 3D Tux model loaded by `Tux3DCanvas.jsx` via `/tux/scene.gltf`. |
-| `bg-texture.png` | Legacy hero texture, superseded by CSS `.hero-bg`. |
-| `same-bg.png` | Neutral default card background used by `DistroCard.jsx`. |
-| `ubuntu-card-bg.png`, `debian-card-bg.png`, `fedora-card-bg.png`, `arch-card-bg.png`, `mint-card-bg.png`, `kali-card-bg.png` | Per-distro hover backgrounds, referenced via `distro.cardBg`. |
+| `same-bg.webp` | Neutral default card background used by `DistroCard.jsx`. |
+| `ubuntu-card-bg.webp`, `debian-card-bg.webp`, `fedora-card-bg.webp`, `arch-card-bg.webp`, `mint-card-bg.webp`, `kali-card-bg.webp` | Per-distro hover backgrounds, referenced via `distro.cardBg`. |
 | `install-guide/normal_step1_download.png` … `normal_step5_firstboot.png` | 5 visuals for Normal install (download ISO → flash USB → UEFI → partition → first boot). Shown on Detail page. |
 | `install-guide/dual_step1_diskmgmt.png` … `dual_step5_grub.png` | 5 visuals for Dual-boot with Windows (disk mgmt → fast startup → Rufus → alongside → GRUB). |
 | `install-guide/vm_step1_virtualbox.png` … `vm_step5_additions.png` | 5 visuals for VM install (VirtualBox → profile → storage → running → guest additions). |
@@ -97,8 +102,8 @@ npm run dev            # frontend → http://localhost:5173
 
 | File | Explanation |
 |---|---|
-| `src/data/distros.js` | Mirror of all 14 distros. Exports `DISTROS, POPULAR_DISTROS`. Used when API is down. Must stay in sync with `backend/src/data/distros.js`. |
-| `src/data/installGuide.js` | Exports `getInstallationData(distro)` building `normal/dual/vm` 5-step guides. Fallback when `distro.installGuide` missing from API. |
+| `src/data/distros.js` | Mirror of all 14 distros. Exports `DISTROS, POPULAR_DISTROS`. Used when API is down. Must stay in sync with `django/apps/catalogue/data/distros.json`. |
+| `src/data/installGuide.js` | Exports `getInstallationData(distro)` building `normal/dual/vm` 5-step guides. Fallback when `distro.installGuide` missing from API. Source of truth: `django/apps/catalogue/guides.py`. |
 
 ### 3.5 `src/utils/`
 
@@ -169,101 +174,78 @@ npm run dev            # frontend → http://localhost:5173
 
 ---
 
-## 4. Backend — `backend/`
+## 4. API Backend — `django/`
 
-**Stack:** Express 4, Mongoose 8, jsonwebtoken, bcryptjs, cors, dotenv, nodemailer. ESM (`type: module`). No tests/linter.
+**Stack:** Django 5 (Python), SQLite, PyJWT, bcrypt (via Django hashers), requests. No templates, no admin, no static files — it serves only `/api`. No tests/linter.
 
 ### 4.1 Root files
 
 | File | Explanation |
 |---|---|
-| `server.js` | Entry: `cors + express.json()`, `GET /api/health`, mounts `/api/flavours\|distros\|auth\|chat\|community\|quiz`, then `notFound + errorHandler`, then `connectDB().then(app.listen:5000)`. |
-| `package.json` | Name `linux-distro-hub-backend`. Scripts `start / dev (--watch) / seed / seed:destroy`. Deps above. |
-| `.env.example` | Template: `PORT, MONGO_URI, CLIENT_URL, JWT_SECRET, GROQ_API_KEY/MODEL, TYPESAFE_API_KEY/MODEL, SMTP_* / RESET_DELIVERY`. Copy to `.env`. |
-| `README.md` | Setup + endpoint table (covers flavours/distros/quiz; auth/chat/community only in root README). |
+| `manage.py` | Django CLI entry. `migrate`, `seed`, `runserver 8010`. |
+| `requirements.txt` | `Django, bcrypt, PyJWT, requests, python-dotenv`. |
+| `.env.example` | Template: `DEBUG, ALLOWED_HOSTS, CLIENT_URL, DJANGO_SECRET_KEY, JWT_SECRET, GROQ_API_KEY/MODEL, TYPESAFE_API_KEY/MODEL, SMTP_* / RESET_DELIVERY, ADMIN_EMAIL/PASSWORD`. Copy to `.env`. |
+| `config/settings.py` | SECRET_KEY/DEBUG from env, SQLite DB file, the custom bcrypt-at-cost-10 hasher, JWT + AI-key + SMTP knobs, `APP_ENV` (stack traces only outside production). |
+| `config/urls.py` | The entire route table (the API contract). Static segments (`popular`, `categories`, `compare`) are registered **before** `<key>`, so those words are never treated as a distro id. `^api(?:/\|$)` is the 404 envelope. |
 
-### 4.2 `src/config/`
-
-| File | Explanation |
-|---|---|
-| `src/config/db.js` | `connectDB()` via `mongoose.connect(MONGO_URI \|\| localhost/linux_hub)`. `process.exit(1)` on fail. Called by `server.js` and `seed.js`. |
-
-### 4.3 `src/models/` — all shape JSON as `{id, ...}`, hide `_id/__v`
-
-| File / Collection | Explanation |
-|---|---|
-| `src/models/Flavour.js` → `flavours` | Lean cards: `distroId unique, name, accent, tagline, basedOn, pkgMgr, category, popular, angle, website, downloadUrl, cardBg, preview`. Text index + virtual `id=distroId`. |
-| `src/models/Distro.js` → `distros` | Full detail: above + `initSystem, desktop, releaseModel, latestVersion, minRam/minDisk, license, architectures, installCmd, description, keyFeatures[], installation`. Maps to frontend `{id, init, installGuide}` in `toJSON`. |
-| `src/models/User.js` → `users` | `email unique, passwordHash (bcrypt), name, isAdmin, resetTokenHash/Expiry`. Hides secrets. Used by auth middleware. |
-| `src/models/Chat.js` → `chats` | `user ref, title, messages[{role: user\|assistant, content, sources[{title, url}]}]`. |
-| `src/models/Post.js` → `posts` | `author, channel (general\|distroId), title≤150, body≤10k, linkUrl, score, commentCount`. Text index on title. |
-| `src/models/Comment.js` → `comments` | `post, author, parent\|null (one-level threading), body≤5k, score`. |
-| `src/models/Vote.js` → `votes` | `user, targetType: post\|comment, targetId, value: 1\|-1`, unique compound. `applyVote()` atomically `$inc` target score. |
-| `src/models/Notification.js` → `notifications` | `user, type: reply\|comment, actor, post, comment, read`. Pull-only feed. Written on new comments. |
-| `src/models/Report.js` → `reports` | `reporter\|null (AI), source: user\|ai, targetType/Id, reason: spam\|harassment\|off-topic\|wrong-channel\|other, detail, status: open\|resolved\|dismissed`. One per reporter/target. |
-| `src/models/AuditLog.js` → `auditlogs` | Append-only: `actor, action, targetType/Id, detail`. No update/delete API. |
-
-Two collections, one key: `flavours` (cards) vs `distros` (detail+guides), linked by `distroId`. Seed keeps them in sync.
-
-### 4.4 `src/controllers/`
+### 4.2 `apps/core/` — cross-cutting infrastructure
 
 | File | Explanation |
 |---|---|
-| `src/controllers/flavourController.js` | `getFlavours(?search,category,popular,page,limit,sort), getPopularFlavours, getFlavourCategories, getFlavourById, create\|update\|deleteFlavour`. Translates `id→distroId`. |
-| `src/controllers/distroController.js` | `getDistroById` (by `distroId\|name`, builds `installGuide` on-the-fly if missing), `getDistrosForCompare(?ids= max 4), create\|update\|deleteDistro` via `toDB(id→distroId, init→initSystem, installGuide→installation)`. |
-| `src/controllers/authController.js` | `register\|login (bcrypt+jwt 7d), getMe, forgotPassword\|verifyResetToken\|resetPassword` (6-digit OTP, sha256 + 15m expiry, `deliverResetToken`). |
-| `src/controllers/chatController.js` | `getChats, create\|get\|rename\|deleteChat (ownership→404), sendMessage` pipeline: save user msg → parallel `searchReddit + runWebResearch` → `synthesizeAnswer` → `filterSources` → save assistant msg. |
-| `src/controllers/communityController.js` | Full Reddit-clone: `listPosts(?channel,sort:hot\|new\|top,search,page)` (hotScore aggregation), post CRUD (delete cascades), comment CRUD (recursive delete), votes, `getChannelStats, suggestChannelForDraft, create\|list\|updateReportStatus, notifications, getAuditLog`. Calls `Vote, moderationAgent, channelSuggestAgent, auditLog`. |
-| `src/controllers/quizController.js` | `POST {answers[]}` public, always 200: `loadCatalogue (DB→static fallback), sanitizeOrder`, `fallback({ai:false, winner:null})` on no key/error/low confidence, else `recommendDistro()` → `{ai:true, winner, runnersUp, probabilities, confidence, explanation, strengths, tip}`. Fully AI — no scoring. |
+| `apps/core/errors.py` | `@endpoint(methods=…)` decorator wraps every route: auth first, then rate limiter (key = user id or IP), then the handler; converts `ApiError/validation/integrity` failures into the `{success:false, message}` envelope (+ `stack` outside production). Also `read_body`, `json_payload`, `error_payload`, `parse_id` (uncastable id → 400). |
+| `apps/core/security.py` | Bearer-token auth: `issue_token(user_id)` (HS256 JWT `{id, exp}`, 7 days) + `authenticate_request` (`jwt.decode`) + `require_admin` (403). |
+| `apps/core/ratelimit.py` | In-memory sliding-window limiter (single process). Presets: `VOTE (60/m), POST (5/10m), COMMENT (20/10m), QUIZ (20/m), CHAT_MESSAGE (30/m), AUTH (30/15m), SUGGEST_CHANNEL (20/m)`. Sets `Retry-After` on 429. |
+| `apps/core/middleware.py` | `ApiCorsMiddleware` — preflight answered before routing with 204 + Access-Control headers; only `CLIENT_URL` origin allowed. |
+| `apps/core/serialize.py` | Shared JSON shaping: `iso()` dates (`2026-10-28T19:37:00.123Z`), hides DB internals, keeps frontend key names. |
+| `apps/core/mailer.py` | `deliver_reset_token({email, token})` via SMTP if configured, else console log (refuses in production without SMTP). |
+| `apps/core/views.py` | `GET /api/health` + the `/api` 404 envelope. |
 
-### 4.5 `src/routes/` — mounted in `server.js`
-
-| File | Mount | Explanation |
-|---|すすめ---|---|---|
-| `src/routes/flavourRoutes.js` | `/api/flavours` | `GET /popular\|/categories` (before `/:id`), `GET\|POST /`, `GET\|PUT\|DELETE /:id`. |
-| `src/routes/distroRoutes.js` | `/api/distros` | `POST /`, `GET /compare` (before `/:id`), `GET\|PUT\|DELETE /:id`. |
-| `src/routes/authRoutes.js` | `/api/auth` | `POST /register\|login\|forgot-password\|verify-reset-token\|reset-password` (all rate-limited) + `GET /me (protect)`. |
-| `src/routes/chatRoutes.js` | `/api/chat` (all `protect`) | `GET\|POST /`, `GET\|DELETE /:id`, `PUT /:id/rename`, `POST /:id/messages` (rate-limited). |
-| `src/routes/communityRoutes.js` | `/api/community` (all `protect`) | Posts, stats, notifications, admin audit/reports, votes, comments — all rate-limited (see §4.6). |
-| `src/routes/quizRoutes.js` | `/api/quiz` | `POST /recommend` (rate-limited, public). |
-
-### 4.6 `src/middleware/`
+### 4.3 `apps/catalogue/` — models + endpoints (tables named `flavours` / `distros`)
 
 | File | Explanation |
 |---|---|
-| `src/middleware/authMiddleware.js` | `protect` (Bearer JWT → `req.user` via `User.findById`) + `requireAdmin (403 if !isAdmin)`. |
-| `src/middleware/errorMiddleware.js` | `notFound (404 JSON)` + `errorHandler` (`ValidationError→400, 11000→409, CastError→400`, hides stack in prod). Works with `asyncHandler`. |
-| `src/middleware/rateLimit.js` | In-memory sliding window. Presets: `vote (60/m), post (5/10m), comment (20/10m), quiz (20/m), chatMessage (30/m)`. |
+| `apps/catalogue/models.py` | `Flavour` (lean cards: `distro_id unique, name, accent, tagline, based_on, pkg_mgr, category, popular, angle, website, download_url, card_bg, preview`) + `Distro` (full detail: above + `init_system, desktop, release_model, latest_version, min_ram/min_disk, license, architectures, install_cmd, description, key_features[], installation`). Two tables, one key: `distro_id`. |
+| `apps/catalogue/api.py` | `flavours_collection(?search,category,popular,page,limit,sort)` (case-insensitive `icontains` search), `flavours_popular`, `flavours_categories`, `flavour_by_key`, `distro_by_key` (by `distroId` or name; builds the guide on-the-fly if missing), `distros_compare(?ids= max 4)`, admin CRUD via `_to_db` (`id→distro_id, init→init_system, installGuide→installation`) and `_camel` (shapes rows back to frontend keys). |
+| `apps/catalogue/guides.py` | **Single source of truth** for install content: `build_install_guide(distro)` → `{normal, dual, vm}` 5-step guides (pkgMgr-aware `updateCmd`). Stored in `installation`, served as `installGuide`. |
+| `apps/catalogue/static_data.py` | Static catalogue fallback (`data/distros.json`) served when the DB is unreachable — the API never breaks. |
+| `apps/catalogue/management/commands/seed.py` | `manage.py seed` — maps `id→distroId, init→initSystem`, bakes `build_install_guide` into `installation`, projects lean fields into `flavours` (14+14), creates the admin account (bcrypt cost 10). |
 
-### 4.7 `src/services/` — AI + external, all plain `fetch`, best-effort
-
-| File | Explanation |
-|---|---|
-| `src/services/groqClient.js` | Shared Groq `chatCompletion({system, messages, temperature, maxTokens, jsonMode})`. Base for web research + synthesizer. Exports `NO_KEY_MESSAGE`. Model from `GROQ_MODEL`. |
-| `src/services/jevClient.js` | Shared TypeSafe `systemOne({state, questions, model})`. Typed judgments only. Base for quiz/citation/moderation/channel-suggest. Model from `TYPESAFE_MODEL` (default `jev-latest`). |
-| `src/services/redditService.js` | `searchReddit(query)` — `search.json?q=+linux`, up to 4 posts + top-3 comments, 8s cap, never throws. |
-| `src/services/webResearchAgent.js` | `runWebResearch({question, history})` — Groq recall (temp 0.3), empty on fail. Runs parallel with Reddit. |
-| `src/services/synthesizerAgent.js` | `synthesizeAnswer({question, history, redditResults, webFindings, webSources})` — final Markdown + Sources section. |
-| `src/services/citationAgent.js` | `filterSources({question, sources})` — Jev Noul per source, keep ≥0.3, never strip all. |
-| `src/services/quizAgent.js` | `recommendDistro({answers, catalogue})` — one Jev Choice over the full catalogue + code-derived `runnersUp, explanation, strengths, tip`. `MIN_TOP_PROBABILITY=0.15`. |
-| `src/services/moderationAgent.js` | `screenContent({targetType, targetId, title, body})` — fire-and-forget Jev 3×Noul (spam/abusive/offtopic, threshold 0.7) → `Report(source:ai)`. |
-| `src/services/channelSuggestAgent.js` | `suggestChannel({title, body})` — Jev Choice over `general + distroIds`. |
-
-### 4.8 `src/data/`
+### 4.4 `apps/accounts/` — auth
 
 | File | Explanation |
 |---|---|
-| `src/data/distros.js` | `DISTROS[14]` seed mirror (frontend-shaped `{id, init, ...}`). Consumed by `seed.js` + quiz fallback. Keep in sync with `frontend/src/data/distros.js`. |
-| `src/data/installGuide.js` | `buildInstallGuide(distro)` → `{normal, dual, vm}` steps (pkgMgr-aware `updateCmd`). Stored as `installation`, served as `installGuide`. Source of truth for guide content. |
+| `apps/accounts/models.py` | Custom user: unique lowercase email, bcrypt password hash (never serialised), null/empty hash for Google-only accounts, `is_admin`, hashed single-use 6-digit reset token + expiry. |
+| `apps/accounts/api.py` | `register` / `login` (same message for wrong email vs wrong password — no enumeration), `google` (tokeninfo verification, links by verified email), `me`, `forgot_password` / `verify_reset_token` / `reset_password` (sha256-hashed OTP, 15-min expiry, constant-time compare). All behind `AUTH_LIMIT`. |
+| `apps/accounts/hashers.py` | `Bcrypt10PasswordHasher` — Django's bcrypt pinned to cost 10 so hashes read `$2b$10$…`. |
 
-### 4.9 `src/utils/`
+### 4.5 `apps/chat/` + `apps/ai/` — AI assistant
 
 | File | Explanation |
 |---|---|
-| `src/utils/seed.js` | `npm run seed \| --destroy`. Maps `id→distroId, init→initSystem + buildInstallGuide` → `distros`, projects `FLAVOUR_FIELDS` → `flavours` (14+14). |
-| `src/utils/asyncHandler.js` | `asyncHandler(fn)` forwards async errors to `errorMiddleware`. Used by all controllers. |
-| `src/utils/auditLog.js` | `logAdminAction(...)` (fire-and-forget `AuditLog.create`) + `isAdminOnOthersContent()`. |
-| `src/utils/mailer.js` | `deliverResetToken({email, token})` via nodemailer SMTP if configured, else console log (refuses in prod without SMTP). |
+| `apps/chat/models.py` | `Chat` (user, title) + `Message` rows serialised back as bare `{role, content, sources}` objects — the shape the chat UI reads. |
+| `apps/chat/api.py` | Chat CRUD (ownership → 404), `chat_messages` pipeline: save user msg → parallel `search_reddit + run_web_research` (thread pool) → `synthesize_answer` → `filter_sources` → save assistant msg. Also `chat_message_stream` (SSE). |
+| `apps/ai/groq_client.py` | Groq via plain `requests` — `chat_completion` / `chat_completion_stream`. Key pool (`GROQ_API_KEY` + `_2…_5`, comma lists); 429/401 cools a key down. Model from `GROQ_MODEL`. |
+| `apps/ai/jev_client.py` | TypeSafe `system_one({state, questions, model})`. Typed judgments only. Model from `TYPESAFE_MODEL` (default `jev-latest`). |
+| `apps/ai/reddit.py` | `search_reddit(query)` — `search.json?q=+linux`, up to 4 posts + top-3 comments, 8s cap, never raises. |
+| `apps/ai/web_research_agent.py` | `run_web_research({question, history})` — Groq recall (temp 0.3), empty on fail. Runs parallel with Reddit. |
+| `apps/ai/synthesizer_agent.py` | `synthesize_answer({question, history, reddit_results, web_findings, web_sources})` — final Markdown + Sources section (+ a stream variant). |
+| `apps/ai/citation_agent.py` | `filter_sources({question, sources})` — Jev Noul per source, keep ≥0.3, never strip all. |
+| `apps/ai/quiz_agent.py` | `recommend_distro({answers, catalogue})` — one Jev Choice over the full catalogue + code-derived `runners_up, explanation, strengths, tip`. `MIN_TOP_PROBABILITY=0.15`. |
+| `apps/ai/moderation_agent.py` | `screen_content(...)` — one batched Jev request judging spam / abusive / off-topic (threshold 0.7) → `Report(source:'ai')`, fire-and-forget. |
+| `apps/ai/channel_suggest_agent.py` | `suggest_channel({title, body})` — Jev Choice over `general + distroIds`. |
+
+### 4.6 `apps/community/` — Reddit-style forum
+
+| File | Explanation |
+|---|---|
+| `apps/community/models.py` | `Post` (author, channel = `general`\|`distroId`, title≤150, body≤10k, link_url, score, comment_count; `Meta.indexes` on `channel+created_at` / `channel+score`), `Comment` (one nesting level via `parent`), `Vote` (unique per user+target; `apply_vote` moves the denormalised score), `Notification`, `Report` (source `user`\|`ai`, reason enum, status `open/resolved/dismissed`), `AuditLog` (append-only). |
+| `apps/community/api.py` | Full forum API: feed (`?channel, sort:hot\|new\|top, search, page`), post CRUD (delete cascades), comment CRUD (recursive delete), votes, `stats`, `suggest_channel`, `reports`, `notifications` (+ read/read-all), admin `audit` + `reports` triage. |
+
+### 4.7 `apps/quiz/`
+
+| File | Explanation |
+|---|---|
+| `apps/quiz/api.py` | `POST /api/quiz/recommend` (public, always 200): loads catalogue (DB → static fallback), `sanitize_order` validates Jev's pick against it; no key / error / low confidence → `{ai:false, winner:null}` fallback. Fully AI — no scoring. |
 
 ---
 
@@ -285,7 +267,7 @@ GET  /api/community/posts?channel=&sort=hot|new|top&search=&page=
 POST /api/community/posts          { channel, title, body?, linkUrl? }
 ```
 
-Graceful degradation: quiz returns `{ai:false}` without `TYPESAFE_API_KEY`; chat returns 503 without `GROQ_API_KEY`; frontend falls back to static data if API down.
+Graceful degradation: quiz returns `{ai:false}` without `TYPESAFE_API_KEY`; chat returns 503 without `GROQ_API_KEY`; frontend falls back to static data if the API is down; the API itself falls back to `data/distros.json` if the DB is down.
 
 ---
 
@@ -295,7 +277,7 @@ Graceful degradation: quiz returns `{ai:false}` without `TYPESAFE_API_KEY`; chat
 2. **Browse (1m):** Home orbital hero (Three.js Tux) → Flavours grid + search/filter → Detail page specs + install-guide tabs with images + copyable commands.
 3. **Decide (1m):** Compare 4 distros side-by-side → Quiz wizard → show Jev AI verdict with probabilities.
 4. **Ask + Discuss (1m):** Login → AI chat (Reddit + Groq synthesis with sources) → Community post/vote/comment per distro channel.
-5. **Under the hood (1m):** MERN diagram, two-collections-one-key (`flavours` vs `distros` via `distroId`), custom router, fetch-then-fallback, plain-fetch AI clients, JWT + rate limits + moderation pipeline. Close with `npm run seed / server / dev`.
+5. **Under the hood (1m):** React + Django diagram, two-tables-one-key (`flavours` vs `distros` via `distro_id`), custom router, fetch-then-fallback, plain-requests AI clients, JWT + rate limits + moderation pipeline. Close with `manage.py seed / runserver` + `npm run dev`.
 
 ---
 
@@ -336,26 +318,26 @@ const navigate = (path) => {
 
 ## B2. Frontend → Backend connection — code for API wiring
 
-**Files:** `frontend/vite.config.js:7-15`, `frontend/src/services/distroApi.js:5-11`
+**Files:** `frontend/vite.config.js:7-15`, `frontend/src/services/distroApi.js:5-11`, `django/config/urls.py`
 
 ```js
 // vite.config.js — dev only
-server: { proxy: { '/api': { target: 'http://localhost:5000' } } }
+server: { proxy: { '/api': { target: 'http://localhost:8010' } } }
 
 // every services/*.js — same pattern
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 async function fetchJSON(url) {
-  const res = await fetch(url);           // → /api/flavours?... → :5000
+  const res = await fetch(url);           // → /api/flavours?... → :8010
   if (!res.ok) throw new Error(`API ${res.status}`);
   return res.json();
 }
 ```
 
-**Explain:** Browser calls `/api/...`. In dev Vite proxies to Express `:5000`; in prod `VITE_API_URL` points to hosted API. Backend `server.js:28-37` mounts `/api/flavours|distros|auth|chat|community|quiz`. `cors({ origin: CLIENT_URL })` allows the frontend origin.
+**Explain:** Browser calls `/api/...`. In dev Vite proxies to Django `:8010`; in prod `VITE_API_URL` points to the hosted API. `django/config/urls.py` maps every route, and `ApiCorsMiddleware` allows the `CLIENT_URL` origin (preflight answered before routing).
 
 ## B3. Browse catalogue — code for Flavours list (full vertical slice)
 
-**Chain:** `FlavoursPage.jsx:82` → `hooks/useDistros.js:19-42` → `services/distroApi.js:29-51` → `controllers/flavourController.js:5-42` → `models/Flavour.js` → Mongo `flavours`
+**Chain:** `FlavoursPage.jsx:82` → `hooks/useDistros.js:19-42` → `services/distroApi.js:29-51` → `django/apps/catalogue/api.py (flavours_collection)` → `models.py (Flavour)` → SQLite `flavours`
 
 ```jsx
 // FlavoursPage.jsx
@@ -374,67 +356,66 @@ const json = await fetchJSON(`${API_BASE}/flavours?search=..&limit=100`);
 return (json.data || []).map(normalize);
 // catch { return DISTROS.filter(...) }  ← offline fallback
 
-// flavourController.js — real DB query
-const filter = {};
-if (category !== 'All') filter.category = category;
-if (search) filter.$or = [{name:{$regex:q,$options:'i'}}, ...];
-const [total, flavours] = await Promise.all([
-  Flavour.countDocuments(filter),
-  Flavour.find(filter).skip(...).limit(limitNum)
-]);
-res.json({ success:true, count, total, page, pages, data: flavours });
+# catalogue/api.py — real DB query (Django ORM)
+conditions = Q()
+if popular == "true": conditions &= Q(popular=True)
+if search:            conditions &= Q(name__icontains=term) | Q(tagline__icontains=term)
+total = Flavour.objects.filter(conditions).count()
+flavours = Flavour.objects.filter(conditions)[offset:offset+limit]
+return {"success": True, "count": …, "total": …, "page": …, "pages": …, "data": flavours}
 ```
 
-**Explain:** Hook owns loading state, service owns fetch-then-fallback, controller owns Mongo filter/pagination, model shapes JSON as `{id,...}`. Same pattern repeats for popular + categories.
+**Explain:** Hook owns loading state, service owns fetch-then-fallback, the view owns the ORM filter/pagination, the model row is shaped into `{id,...}` by `_camel`. Same pattern repeats for popular + categories.
 
 ## B4. Detail page + install guide — code for specs/guides
 
-**Chain:** `DistroDetailPage.jsx:86-87` → `hooks/useDistro.js:16-43` → `distroApi.getDistroById` → `controllers/distroController.js:22-36` → `data/installGuide.js:13-35` + `models/Distro.js:76-85`
+**Chain:** `DistroDetailPage.jsx:86-87` → `hooks/useDistro.js:16-43` → `distroApi.getDistroById` → `django/apps/catalogue/api.py (distro_by_key)` → `guides.py` + `models.py`
 
 ```js
 // useDistro.js
 const [distro, setDistro] = useState(() => findLocal(distroId)); // instant
 useEffect(() => { getDistroById(distroId).then(setDistro); }, [distroId]);
 
-// distroController.js
-const distro = await Distro.findOne({ distroId: key }) ||
-                     await Distro.findOne({ name: regex });
-if (!distro.installation)
-  distro.installation = buildInstallGuide(distro.toObject()); // on-the-fly
-res.json({ success: true, data: distro }); // toJSON → {id, init, installGuide}
+// catalogue/api.py — distro_by_key
+distro = Distro.objects.filter(distro_id=key).first() or lookup by name
+if not distro.installation:
+    distro.installation = build_install_guide(distro)  # on-the-fly
+return {"success": True, "data": _camel(distro)}  # {id, init, installGuide}
 
-// installGuide.js — source of truth, pkgMgr-aware
-const updateCmd = distro.pkgMgr==='apt' ? 'sudo apt update && sudo apt upgrade -y'
-  : distro.pkgMgr==='pacman' ? 'sudo pacman -Syu'
-  : distro.pkgMgr==='dnf' ? 'sudo dnf upgrade --refresh -y' : ...;
-return { normal:{steps:[...5]}, dual:{steps:[...5]}, vm:{steps:[...5]} };
+// guides.py — source of truth, pkgMgr-aware
+updateCmd = "sudo apt update && sudo apt upgrade -y" if pkg_mgr == "apt" \
+    else "sudo pacman -Syu" if pkg_mgr == "pacman" else "sudo dnf upgrade …"
+return {"normal": {steps: [5]}, "dual": {steps: [5]}, "vm": {steps: [5]}}
 
-// Distro.js shapeJSON — the field-mapping gotcha
-ret.id = ret.distroId; ret.init = ret.initSystem; ret.installGuide = ret.installation;
-delete ret._id; delete ret.__v; delete ret.installation; delete ret.initSystem;
+# catalogue/api.py — _camel, the field-mapping helper
+data["id"] = row.distro_id; data["init"] = row.init_system
+data["installGuide"] = row.installation
 ```
 
-**Explain:** Detail content lives in DB (`installation`), not hardcoded in client. `init` is a reserved Mongoose method so DB uses `initSystem`. Frontend `DistroDetailPage` tabs `normal/dual/vm` render steps + copyable `cmd` + images from `public/install-guide/`.
+**Explain:** Detail content lives in the DB (`installation` column), not hardcoded in the client. The API exposes the frontend's key names (`id`/`init`/`installGuide`) via `_camel`. Frontend `DistroDetailPage` tabs `normal/dual/vm` render steps + copyable `cmd` + images from `public/install-guide/`.
 
 ## B5. Seed — code for how DB gets the 14 distros
 
-**File:** `backend/src/utils/seed.js:27-52`
+**File:** `django/apps/catalogue/management/commands/seed.py`
 
-```js
-const toDetailDoc = ({ id, init, ...rest }) => ({
-  distroId: id, initSystem: init || 'systemd', ...rest,
-  installation: buildInstallGuide({ id, ...rest }), // guides baked in
-});
-const detailDocs = DISTROS.map(toDetailDoc);
-await Distro.insertMany(detailDocs);
-await Flavour.insertMany(detailDocs.map(toFlavourDoc)); // lean subset only
+```python
+def _to_db(entry):
+    distro_id = entry["id"]
+    init_system = entry.get("init") or "systemd"
+    installation = build_install_guide(entry)   # guides baked in
+    return {CAMEL_TO_DB.get(k, k): v for k, v in entry.items()}
+
+for doc in docs:
+    Distro.objects.update_or_create(distro_id=…, defaults=…)      # 14 details
+    Flavour.objects.update_or_create(distro_id=…, defaults=lean)  # 14 cards
+# + admin account: make_password(ADMIN_PASSWORD, hasher="bcrypt")
 ```
 
-**Explain:** `npm run seed` wipes both collections, inserts 14 full docs into `distros`, projects lean fields into `flavours`. One key links them: `distroId`. `frontend/src/data/distros.js` and `backend/src/data/distros.js` must stay in sync.
+**Explain:** `manage.py seed` upserts both tables from one source, baking `build_install_guide` into `installation`. One key links them: `distro_id`. `frontend/src/data/distros.js` and `django/apps/catalogue/data/distros.json` must stay in sync.
 
 ## B6. Quiz end-to-end — fully AI, no scoring table
 
-**Chain:** `utils/distroQuiz.js` (questions only) → `pages/QuizPage.jsx` → `services/quizApi.js` → `controllers/quizController.js` → `services/quizAgent.js:59` → `services/jevClient.js:12`
+**Chain:** `utils/distroQuiz.js` (questions only) → `pages/QuizPage.jsx` → `services/quizApi.js` → `django/apps/quiz/api.py` → `apps/ai/quiz_agent.py` → `apps/ai/jev_client.py`
 
 ```js
 // 1. Questions only — options are bare labels, zero points anywhere
@@ -444,86 +425,84 @@ export const QUIZ_QUESTIONS = [{ id: 'experience', question: '...', options: [{ 
 const readable = QUIZ_QUESTIONS.map((q) => ({ questionId: q.id, question: q.question, answer: ... }));
 getAiRecommendation({ answers: readable })  // throws → error panel + retry (keeps answers)
 
-// 3. quizController — always 200, ai:false means error (never a guess)
-if (!process.env.TYPESAFE_API_KEY) return fallback(NO_KEY_MESSAGE);
-verdict = await recommendDistro({ answers, catalogue });
-if (topProbability < 0.15) return fallback('AI was unsure'); // uniform = noise
+# 3. quiz/api.py — always 200, ai:false means error (never a guess)
+if not settings.TYPESAFE_API_KEY: return fallback(NO_KEY_MESSAGE)
+winner, top_probability = recommend_distro(answers, catalogue)
+if not winner or top_probability < MIN_TOP_PROBABILITY: return fallback("AI was unsure")
 
-// 4. quizAgent — ONE Jev Choice over the whole 14-distro catalogue
-const data = await systemOne({ state:{ answers },
-  questions:{ best_distro:{ type:'choice', instructions:{...rubric}, criteria } } });
-// criteria = { ubuntu:"Ubuntu — ... | category | desktop | release | min RAM", ... }
-// runners-up = 2nd/3rd probability; strengths = catalogue taglines;
-// explanation = user profile + winner tagline; tip = FIRST_STEP_TIPS[winner]
+# 4. quiz_agent — ONE Jev Choice over the whole 14-distro catalogue
+data = system_one(state={"answers": answers},
+                  questions={"best_distro": {"type": "choice", "instructions": rubric, "criteria": criteria}})
+# criteria = { ubuntu:"Ubuntu — ... | category | desktop | release | min RAM", ... }
+# runners-up = 2nd/3rd probability; strengths = catalogue taglines;
+# explanation = user profile + winner tagline; tip = FIRST_STEP_TIPS[winner]
 ```
 
-**Explain:** No scoring table exists anywhere. Backend validates Jev's pick against the catalogue via `sanitizeOrder`. Key missing / error / low confidence → `{ai:false, winner:null}` → frontend shows an error panel with Try again (answers kept) and Retake.
+**Explain:** No scoring table exists anywhere. The API validates Jev's pick against the catalogue via `sanitize_order`. Key missing / error / low confidence → `{ai:false, winner:null}` → frontend shows an error panel with Try again (answers kept) and Retake.
 
 ## B7. Auth — code for login/JWT/protect
 
-**Chain:** `pages/AuthPage.jsx` → `hooks/useAuth.js` → `services/authApi.js:48-91` → `controllers/authController.js:19-69` → `middleware/authMiddleware.js:6-30`
+**Chain:** `pages/AuthPage.jsx` → `hooks/useAuth.js` → `services/authApi.js:48-91` → `django/apps/accounts/api.py` → `apps/core/security.py`
 
 ```js
 // authApi.js — token in localStorage
 headers.Authorization = `Bearer ${getToken()}`; // dp_token
+```
 
-// authController.js — register/login
-const passwordHash = await bcrypt.hash(password, 10);
-const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn:'7d' });
-res.json({ success:true, token, data: user });
-// login: same message for wrong email vs wrong password (no enumeration)
-// forgot-password: 6-digit OTP, sha256 hash + 15min expiry, mailer or console
+```python
+# accounts/api.py — register
+user = User(email=email, password=make_password(password, hasher="bcrypt"))
+# login: same message for wrong email vs wrong password (no enumeration)
+# forgot-password: 6-digit OTP, sha256 hash + 15min expiry, mailer or console
 
-// authMiddleware.js — protect
-const token = header.split(' ')[1];
-decoded = jwt.verify(token, process.env.JWT_SECRET);
-req.user = await User.findById(decoded.id); next();
-// community/chat routes do router.use(protect); admin adds requireAdmin
+# core/security.py — issue + protect
+token = jwt.encode({"id": str(user.id), "exp": …}, settings.JWT_SECRET, algorithm="HS256")
+decoded = jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
+request.user = User.objects.get(id=decoded["id"])   # community/chat routes are auth=True
 ```
 
 **Explain:** `useAuth` syncs `dp_token/dp_user` across components. Every chat/community request carries Bearer. Mismatch on private chats returns 404 (not 403) to avoid leaking existence.
 
 ## B8. AI Chat — code for multi-agent pipeline
 
-**Chain:** `pages/ChatPage.jsx` → `services/chatApi.js:77-83` → `controllers/chatController.js:69-166` → `services/{redditService,webResearchAgent,synthesizerAgent,citationAgent}.js` → `services/groqClient.js:14-59`
+**Chain:** `pages/ChatPage.jsx` → `services/chatApi.js:77-83` → `django/apps/chat/api.py` → `apps/ai/{reddit,web_research_agent,synthesizer_agent,citation_agent}.py` → `apps/ai/groq_client.py`
 
-```js
-// chatController.sendMessage — the pipeline
-chat.messages.push({ role:'user', content }); await chat.save(); // save first → retry-safe
-const [redditStage, webStage] = await Promise.all([   // PARALLEL
-  timed('reddit', () => searchReddit(content)),        // ~8s cap, never throws
-  timed('web', () => runWebResearch({ question, history })), // Groq recall
-]);
-answer = await synthesizeAnswer({ question, history, redditResults, webFindings, webSources });
-sources = dedupe([...answer.sources, ...redditThreads.slice(0,3)]);
-screened = await filterSources({ question, sources }); // Jev Noul ≥0.3 keeps
-chat.messages.push({ role:'assistant', content: answer.content, sources: screened.sources });
+```python
+# chat/api.py — chat_messages, the pipeline
+chat_message = Message.objects.create(chat=chat, role="user", content=content)  # save first → retry-safe
+with ThreadPoolExecutor() as pool:                                              # PARALLEL
+    reddit_future = pool.submit(search_reddit, content)      # ~8s cap, never raises
+    web_future    = pool.submit(run_web_research, question, history)  # Groq recall
+answer = synthesize_answer(question, history, reddit_results, web_findings, web_sources)
+sources = dedupe(answer.sources + reddit_threads[:3])
+sources = filter_sources(question, sources)          # Jev Noul ≥0.3 keeps
+Message.objects.create(chat=chat, role="assistant", content=answer.content, sources=sources)
 
-// groqClient — plain fetch, no SDK
-await fetch('https://api.groq.com/openai/v1/chat/completions',
-  { headers:{ Authorization:`Bearer ${GROQ_API_KEY}` },
-    body: JSON.stringify({ model: process.env.GROQ_MODEL||'openai/gpt-oss-120b', messages }) });
+# ai/groq_client.py — plain requests, no SDK
+requests.post("https://api.groq.com/openai/v1/chat/completions",
+              headers={"Authorization": f"Bearer {key}"},
+              json={"model": settings.GROQ_MODEL, "messages": messages}, timeout=…)
 ```
 
 **Explain:** Two researchers run in parallel (Reddit real threads + Groq web-recall), synthesizer writes Markdown + Sources, citation agent drops off-topic sources. No key → 503 fast-fail before saving. Frontend renders markdown + `CodeBlock` + typewriter + `.md` download.
 
 ## B9. Community — code for posts/votes/moderation
 
-**Chain:** `pages/CommunityPage.jsx` → `services/communityApi.js` → `routes/communityRoutes.js:36-54` → `controllers/communityController.js` → `models/{Post,Comment,Vote,Report,Notification,AuditLog}.js` + `services/{moderationAgent,channelSuggestAgent}.js`
+**Chain:** `pages/CommunityPage.jsx` → `services/communityApi.js` → `django/apps/community/api.py` → `models.py` + `apps/ai/{moderation_agent,channel_suggest_agent}.py`
 
-```js
-// routes — all protect, granular rate limits
-router.use(protect);
-router.route('/posts').get(listPosts).post(postLimiter, createPost); // 5/10m
-router.post('/posts/:id/vote', voteLimiter, votePost);               // 60/m
-router.post('/posts/:id/comments', commentLimiter, addComment);      // 20/10m
+```python
+# community/api.py — routes are auth=True with granular rate limits
+@api_view(["GET", "POST"])  # posts — POST_LIMIT: 5/10m
+@api_view(["POST"])         # post vote — VOTE_LIMIT: 60/m
+@api_view(["POST"])         # comment — COMMENT_LIMIT: 20/10m
 
-// Vote.applyVote — atomic, one vote per user/target
-// $inc post.score, unique compound (user,targetType,targetId)
+# Vote model — one vote per user/target, unique constraint
+UniqueConstraint(fields=["user", "target_type", "target_id"])
+# apply_vote moves the denormalised score on the target row
 
-// addComment writes Notification for post author; moderationAgent.screenContent
-// fire-and-forget Jev 3×Noul (spam/abusive/offtopic ≥0.7) → Report(source:'ai')
-// suggestChannelForDraft: Jev Choice over general+distroIds
+# add_comment writes Notification for the post author; screen_content runs
+# fire-and-forget: ONE batched Jev request (spam/abusive/off-topic ≥0.7) → Report(source="ai")
+# suggest_channel: Jev Choice over general+distroIds
 ```
 
 **Explain:** Channels are `general` or a `distroId` (validated against flavours). Sort `hot|new|top`, threaded comments (one nesting level via `parent`), optimistic UI voting, reports queue + admin audit log.
@@ -550,13 +529,13 @@ coloredLayerRef.current.animate(
 | Where does routing happen? | Custom `normalizeRoute` + `pushState`, no react-router | `frontend/src/App.jsx:16` |
 | How does frontend talk to backend? | `VITE_API_URL \|\| /api`, Vite proxy in dev | `frontend/vite.config.js:10`, `services/distroApi.js:5` |
 | What if API is down? | Every service try/catch → static `data/distros.js` | `services/distroApi.js:37` |
-| Why two collections? | `flavours` lean cards vs `distros` full detail, linked by `distroId` | `backend/src/utils/seed.js:42` |
-| Why `initSystem` not `init`? | `init` is a reserved Mongoose method; mapped in `toJSON`/`toDB` | `models/Distro.js:26`, `controllers/distroController.js:8` |
-| Where is quiz scoring? | Nowhere — questions only in frontend, Jev Choice over full catalogue, failure = error + retry | `utils/distroQuiz.js`, `services/quizAgent.js:59` |
-| How does quiz AI work? | One Jev Choice over all 14; code derives runners/strengths/explanation from probabilities + catalogue | `services/quizAgent.js:70` |
-| How does chat AI work? | Parallel Reddit + Groq research → Groq synthesis → Jev citation filter | `controllers/chatController.js:101` |
-| How is auth done? | bcrypt + JWT 7d, Bearer in `protect`, `dp_token` in localStorage | `controllers/authController.js:10`, `middleware/authMiddleware.js:6` |
-| How is spam handled? | Rate limits + Jev moderation → `reports` + admin audit log | `middleware/rateLimit.js`, `services/moderationAgent.js` |
-| How are AI calls made? | Plain `fetch`, no SDKs; keys degrade gracefully | `services/groqClient.js:22`, `services/jevClient.js:20` |
-| How to verify? | `npm --prefix frontend run build`, `node --check`, `curl /api/health` | `AGENTS.md:13` |
-
+| What if the DB is down? | API falls back to static `data/distros.json` | `django/apps/catalogue/static_data.py` |
+| Why two tables? | `flavours` lean cards vs `distros` full detail, linked by `distro_id` | `django/apps/catalogue/management/commands/seed.py` |
+| Why `init_system` not `init`? | Column name; the API maps it to the frontend's `init` key | `django/apps/catalogue/api.py` (`_camel` / `_to_db`) |
+| Where is quiz scoring? | Nowhere — questions only in frontend, Jev Choice over full catalogue, failure = error + retry | `utils/distroQuiz.js`, `apps/ai/quiz_agent.py` |
+| How does quiz AI work? | One Jev Choice over all 14; code derives runners/strengths/explanation from probabilities + catalogue | `apps/ai/quiz_agent.py` |
+| How does chat AI work? | Parallel Reddit + Groq research → Groq synthesis → Jev citation filter | `django/apps/chat/api.py` |
+| How is auth done? | bcrypt (cost 10) + JWT 7d, Bearer in `authenticate_request`, `dp_token` in localStorage | `apps/accounts/api.py`, `apps/core/security.py` |
+| How is spam handled? | Rate limits + Jev moderation → `reports` + admin audit log | `apps/core/ratelimit.py`, `apps/ai/moderation_agent.py` |
+| How are AI calls made? | Plain `requests`, no SDKs; keys degrade gracefully | `apps/ai/groq_client.py`, `apps/ai/jev_client.py` |
+| How to verify? | `npm --prefix frontend run build`, `manage.py check`, `curl /api/health` | `AGENTS.md` |

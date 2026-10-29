@@ -14,9 +14,9 @@
 FlavoursPage.jsx:82  useDistros()
   → hooks/useDistros.js:19       (starts with static DISTROS, then Promise.allSettled)
   → services/distroApi.js:29     getDistros() → fetchJSON('/api/flavours?...')
-  → controllers/flavourController.js:5  builds Mongo filter ($or regex search)
-  → models/Flavour.js            lean card docs, toJSON {id,...}
-  → Mongo `flavours` collection
+  → django/apps/catalogue/api.py     builds the filter (case-insensitive substring search)
+  → django/apps/catalogue/models.py  lean card rows shaped as {id,...}
+  → SQLite `flavours` table
   catch → fallback DISTROS.filter()  (UI never breaks offline)
 ```
 
@@ -34,7 +34,7 @@ filter.$or = [{name:{$regex:q,$options:'i'}},{tagline:...},{basedOn:...},{pkgMgr
 
 ## Files involved
 - Frontend: `src/pages/FlavoursPage.jsx`, `src/hooks/useDistros.js`, `src/services/distroApi.js`, `src/components/DistroCard.jsx` (cursor-origin circular wipe hover), `src/components/Navbar.jsx` (search box), `src/data/distros.js` (fallback).
-- Backend: `src/routes/flavourRoutes.js` (`/popular`, `/categories` before `/:id`), `src/controllers/flavourController.js`, `src/models/Flavour.js`.
+- API: `django/apps/catalogue/api.py` (`/popular`, `/categories` are registered before `/:key` in `django/config/urls.py` — order matters), `django/apps/catalogue/models.py`.
 
 ## How to demo / viva line
-"Search hits the API with `?search=`; if the backend is down the same filter runs on local data. Popular is just `popular:true` docs." Open `frontend/src/services/distroApi.js:29` and `backend/src/controllers/flavourController.js:5`.
+"Search hits the API with `?search=`; if the backend is down the same filter runs on local data. Popular is just `popular:true` docs." Open `frontend/src/services/distroApi.js:29` and `django/apps/catalogue/api.py`.

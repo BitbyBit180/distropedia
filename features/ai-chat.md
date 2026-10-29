@@ -34,7 +34,7 @@ if (!process.env.GROQ_API_KEY) return res.status(503).json(...);
 
 ## Files involved
 - Frontend: `src/pages/ChatPage.jsx` (`CodeBlock`, `TableBlock`, `extractText`), `src/services/chatApi.js`, `src/hooks/useAuth.js`.
-- Backend: `src/routes/chatRoutes.js`, `src/controllers/chatController.js`, `src/models/Chat.js` (`messages[{role,content,sources}]`), `src/services/groqClient.js`, `src/services/redditService.js`, `src/services/webResearchAgent.js`, `src/services/synthesizerAgent.js`, `src/services/citationAgent.js`.
+- API: `django/apps/chat/api.py`, `django/apps/chat/models.py` (messages rows), `django/apps/ai/groq_client.py`, `django/apps/ai/reddit.py`, `django/apps/ai/web_research_agent.py`, `django/apps/ai/synthesizer_agent.py`, `django/apps/ai/citation_agent.py`.
 
 ## How to demo / viva line
-"Two researchers run in parallel, synthesizer writes the answer, Jev filters citations. User msg is saved before AI runs so retry is safe." Open `backend/src/controllers/chatController.js:101`.
+"Two researchers run in parallel, synthesizer writes the answer, Jev filters citations. User msg is saved before AI runs so retry is safe." Open `django/apps/chat/api.py`.

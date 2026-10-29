@@ -1,6 +1,7 @@
-"""Bearer-token auth equivalent of the Express `protect` / `requireAdmin`.
+"""Bearer-token auth (`protect` / `requireAdmin`).
 
-Messages and status codes are copied verbatim — the frontend branches on them
+Messages and status codes are part of the API contract — the frontend branches
+on them
 (err.status === 401 sends the visitor to the login view).
 """
 

@@ -1,6 +1,6 @@
 """AI assistant conversations.
 
-Messages were an embedded array in Mongo (no per-message id), so they are rows
+Messages carry no per-message id in the API, so they are rows
 here but serialised back as bare `{ role, content, sources }` objects — the
 shape the chat UI reads.
 """

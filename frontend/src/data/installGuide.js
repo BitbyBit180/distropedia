@@ -3,8 +3,8 @@ import { Laptop, Split, Box } from 'lucide-react';
 /**
  * OFFLINE FALLBACK install-guide builder.
  *
- * Source of truth is the backend (`backend/src/data/installGuide.js`,
- * stored per-distro in MongoDB and served as `installGuide`).
+ * Source of truth is the Django API (`django/apps/catalogue/guides.py`,
+ * served per-distro as `installGuide`).
  * This copy is only used when the API is unreachable, so the detail
  * page never breaks offline. Keep the two in sync.
  */

@@ -1,10 +1,8 @@
-"""Distro (full detail) + Flavour (lean catalogue) — the same two collections
-the Mongo backend used, linked by `distro_id`.
+"""Distro (full detail) + Flavour (lean catalogue) — linked by `distro_id`.
 
-Field-name mapping preserved from the original: frontend `id` / `init` /
-`installGuide` <-> database `distro_id` / `init_system` / `installation`
-(`init` was reserved by Mongoose; the API layer translates both directions in
-apps.catalogue.api).
+API-facing key names differ from the columns: frontend `id` / `init` /
+`installGuide` <-> database `distro_id` / `init_system` / `installation`; the
+API layer translates both directions (apps.catalogue.api).
 """
 
 from django.db import models
@@ -44,7 +42,7 @@ class Distro(models.Model):
 
     class Meta:
         db_table = "distros"
-        # Natural seed order, like the Mongo collection returned it.
+        # Natural seed order.
         ordering = ["pk"]
 
     def __str__(self):
