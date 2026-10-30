@@ -157,7 +157,7 @@ UNFOLD = {
     "SITE_SYMBOL": "terminal",
     "SHOW_HISTORY": True,
     "SHOW_VIEW_ON_SITE": True,
-    "THEME": "dark",
+    "THEME": None,  # None enables dynamic light, dark, and system theme switching
     "LOGIN": {
         "redirect_after": reverse_lazy("admin:index"),
     },
