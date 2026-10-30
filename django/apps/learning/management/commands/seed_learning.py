@@ -19,6 +19,14 @@ DATA_FILE = (
 class Command(BaseCommand):
     help = "Seed the database with the complete Linux learning curriculum"
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--prune",
+            action="store_true",
+            help="Delete plans, lessons and exercises that are absent from the data file "
+            "(used when the syllabus itself is replaced). Cascades to user progress.",
+        )
+
     def handle(self, *args, **options):
         if not DATA_FILE.exists():
             self.stderr.write(self.style.ERROR(f"Data file not found: {DATA_FILE}"))
@@ -32,6 +40,9 @@ class Command(BaseCommand):
         total_lessons = 0
         total_exercises = 0
         total_rules = 0
+
+        kept_plan_slugs = set()
+        kept_lesson_slugs = set()
 
         with transaction.atomic():
             for plan_info in plans_data:
@@ -47,6 +58,7 @@ class Command(BaseCommand):
                     },
                 )
                 total_plans += 1
+                kept_plan_slugs.add(plan_info["slug"])
 
                 for lesson_info in plan_info.get("lessons", []):
                     lesson, _ = Lesson.objects.update_or_create(
@@ -61,6 +73,7 @@ class Command(BaseCommand):
                         },
                     )
                     total_lessons += 1
+                    kept_lesson_slugs.add(lesson_info["slug"])
 
                     for ex_info in lesson_info.get("exercises", []):
                         exercise, _ = PracticalExercise.objects.update_or_create(
@@ -90,6 +103,22 @@ class Command(BaseCommand):
                                 order=r_idx + 1,
                             )
                             total_rules += 1
+
+        if options.get("prune"):
+            stale_lessons = Lesson.objects.exclude(slug__in=kept_lesson_slugs)
+            stale_plans = LearningPlan.objects.exclude(slug__in=kept_plan_slugs)
+            lesson_count = stale_lessons.count()
+            plan_count = stale_plans.count()
+            # Plans cascade their lessons; delete detached lessons from kept plans first.
+            stale_lessons.delete()
+            stale_plans.delete()
+            if lesson_count or plan_count:
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"Pruned {plan_count} old plan(s) and {lesson_count} old lesson(s) "
+                        "that are no longer in the syllabus."
+                    )
+                )
 
         self.stdout.write(
             self.style.SUCCESS(
