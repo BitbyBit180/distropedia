@@ -70,12 +70,14 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
+import dj_database_url
+
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-        "OPTIONS": {"timeout": 20},
-    }
+    "default": dj_database_url.parse(
+        env("DATABASE_URL", f"sqlite:///{BASE_DIR / 'db.sqlite3'}"),
+        conn_max_age=60,
+        conn_health_checks=True,
+    )
 }
 
 # SQLite has no fulltext search; the API uses case-insensitive substring
