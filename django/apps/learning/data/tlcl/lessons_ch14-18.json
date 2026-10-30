@@ -1,0 +1,315 @@
+{
+  "lessons": [
+    {
+      "title": "Chapter 14: Package Management",
+      "slug": "tlcl-ch14-package-management",
+      "order": 14,
+      "is_published": true,
+      "description": "Explain how package files, repositories, dependencies and low/high-level tools (dpkg and apt on Debian-style systems, rpm and yum on Red Hat-style systems) fit together, and take a software inventory of a live system from the command line.",
+      "content": "# Chapter 14: Package Management\n\nPackage management is a method of installing and maintaining software on the system. Because most top-tier distributions release new versions every six months and many program updates every day, we need good tools to keep up; the packaging system is the most important determinant of distribution quality. While distributions provide graphical programs, the command line tools can perform many tasks that are difficult or impossible with their graphical counterparts.\n\n## Packaging Systems\n\nDifferent distributions use different packaging systems, and a package for one distribution is generally not compatible with another. Most fall into two camps:\n\n| Packaging system | Distributions (partial listing) |\n| --- | --- |\n| Debian-style (.deb) | Debian, Ubuntu, Linux Mint, Raspbian |\n| Red Hat-style (.rpm) | Fedora, CentOS, Red Hat Enterprise Linux, OpenSUSE |\n\n## How a Package System Works\n\nThe basic unit is the **package file**: a compressed collection of files comprising the software, plus **metadata** (a text description of the package) and often pre- and post-installation scripts. A **package maintainer** gets software in source code form from the upstream provider, compiles it, and creates the metadata and scripts.\n\nPackages live in central **repositories** — a \"testing\" repository, a \"development\" repository, and third-party repositories for software that cannot legally be included with the distribution. Since programs rely on shared libraries, a package **has a dependency**; package systems perform dependency resolution so dependencies get installed too.\n\nSystems offer **low-level tools** (install and remove package files) and **high-level tools** (metadata searching and dependency resolution):\n\n| Distributions | Low-level tools | High-level tools |\n| --- | --- | --- |\n| Debian-style | dpkg | apt-get, apt, aptitude |\n| Fedora, RHEL, CentOS | rpm | yum, dnf |\n\n## Common Package Management Tasks\n\nHere `package_name` is the name of a package; `package_file` is the file that contains it.\n\n| Task | Debian-style | Red Hat-style |\n| --- | --- | --- |\n| Search the repository | `apt-get update; apt-cache search search_string` | `yum search search_string` |\n| Install from a repository | `apt-get install package_name` | `yum install package_name` |\n| Install a package file | `dpkg -i package_file` | `rpm -i package_file` |\n| Remove a package | `apt-get remove package_name` | `yum erase package_name` |\n| Update all packages | `apt-get update; apt-get upgrade` | `yum update` |\n| Upgrade from a file | `dpkg -i package_file` | `rpm -U package_file` |\n| List installed packages | `dpkg -l` | `rpm -qa` |\n| Package status | `dpkg -s package_name` | `rpm -q package_name` |\n| Package information | `apt-cache show package_name` | `yum info package_name` |\n| Which package owns a file | `dpkg -S file_name` | `rpm -qf file_name` |\n\n```bash\nyum search emacs\napt-get update; apt-get install emacs\nrpm -qf /usr/bin/vim\n```\n\n> **Note:** Low-level installation of a package file (`rpm -i emacs-22.1-7.fc7-i386.rpm`) performs no dependency resolution; rpm exits with an error on a missing dependency. dpkg has no specific upgrade option as rpm does.\n\n## Source Packages\n\nNothing is wrong with compiling source code — access to source is the great wonder of Linux, letting us examine and improve the system; a precompiled package is just faster and easier. Device drivers become part of the Linux kernel, so there is no such thing as a \"driver disk\": either the kernel supports a device or it doesn't. Missing support usually means the device is too new, too exotic, or the vendor is hiding something — products best avoided.\n\n## Summary\n\n- Most distributions use the Debian .deb or Red Hat .rpm packaging family; packages are not interchangeable.\n- Package files bundle programs, data, metadata and install scripts; repositories distribute them and dependency resolution installs required shared libraries.\n- Low-level tools (dpkg, rpm) install and remove files; high-level tools (apt-get, apt-cache, yum, dnf) search metadata and resolve dependencies.\n- Common tasks: search, install, remove, update, list, query status, show information, and find which package installed a file.\n- Compiling from source is powerful but slower than packages; drivers live in the kernel, so Linux has no driver disks.",
+      "exercises": [
+        {
+          "title": "Take an inventory of installed programs",
+          "slug": "ch14-program-inventory",
+          "order": 1,
+          "instructions": "A package manager answers \"what is installed on this system?\" the way `dpkg -l` does. Your guest has no package database, so list its installed programs directly and store the inventory like a package listing:\n\n```bash\nls /bin > /root/bin_list.txt\nwc -l /root/bin_list.txt\n```\n\nThe file /root/bin_list.txt should hold the names of the commands installed on the system.",
+          "hint": "Redirect the output of `ls /bin` into /root/bin_list.txt, then count the lines with wc -l.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/bin_list.txt",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Run `ls /bin > /root/bin_list.txt` in the terminal"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/bin_list.txt",
+              "expected_value": "ls",
+              "points_weight": 5,
+              "feedback_on_failure": "Run `ls /bin > /root/bin_list.txt` so the inventory contains the installed program names"
+            }
+          ]
+        },
+        {
+          "title": "Record the system description",
+          "slug": "ch14-system-description",
+          "instructions": "High-level package tools describe an installed package with metadata. On your guest, gather the metadata of the whole system instead: one command below prints the kernel name, release and machine. Store it as a package card.\n\n```bash\nuname -a > /root/sys_desc.txt\n```\n\nCheck the result with `cat /root/sys_desc.txt`.",
+          "hint": "uname -a prints the full system description in one line; redirect it with `> /root/sys_desc.txt`.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/sys_desc.txt",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Run `uname -a > /root/sys_desc.txt` in the terminal"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/sys_desc.txt",
+              "expected_value": "Linux",
+              "points_weight": 5,
+              "feedback_on_failure": "Run `uname -a > /root/sys_desc.txt` so the file holds the kernel description"
+            }
+          ],
+          "order": 2
+        }
+      ]
+    },
+    {
+      "title": "Chapter 15: Storage Media",
+      "slug": "tlcl-ch15-storage-media",
+      "order": 15,
+      "is_published": true,
+      "description": "Describe how Linux names device files, mounts and unmounts file systems, partitions, formats and checks disks, and works with raw block copies and ISO image files. Inspect the mounted file systems of a live system.",
+      "content": "# Chapter 15: Storage Media\n\nPrevious chapters manipulated data at the file level; this one considers data at the device level. Linux handles physical storage such as hard disks, network storage, and virtual storage devices such as RAID (Redundant Array of Independent Disks) and LVM (Logical Volume Manager). The key commands are mount, umount, fsck, fdisk, mkfs, dd, genisoimage (mkisofs), wodim (cdrecord), and md5sum.\n\n## Mounting and Unmounting Storage Devices\n\n**Mounting** attaches a device to the file system tree. Unlike Windows, which keeps separate trees per drive (C:\\, D:\\), Unix-like systems maintain a single tree with devices attached at various points. The file **/etc/fstab** lists the devices mounted at boot time, one per line with six fields:\n\n| Field | Contents |\n| --- | --- |\n| 1 | Device — a device file such as /dev/sda1, or a text label/UUID that survives hot plugging |\n| 2 | Mount point — the directory the device attaches to |\n| 3 | File system type — ext4, msdos, vfat, ntfs, iso9660, etc. |\n| 4 | Options — e.g. read-only, or preventing program execution from removable media |\n| 5 | Frequency — whether the file system is backed up with dump |\n| 6 | Order — the order file systems are checked with fsck |\n\n`mount` with no arguments lists mounted file systems as *device on mount_point type filesystem_type (options)*. To remount a CD-ROM elsewhere:\n\n```bash\numount /dev/sdc\nmkdir /mnt/cdrom\nmount -t iso9660 /dev/sdc /mnt/cdrom\n[root@linuxbox cdrom]# umount /dev/sdc\numount: /mnt/cdrom: device is busy\n```\n\nA device cannot be unmounted while some process (even your working directory) uses it. Unmounting matters because Linux **buffers** writes in memory; unmount flushes the data so the device is safe to remove — yanking it early can corrupt the file system.\n\n## Determining Device Names\n\nAll devices live in /dev, following naming patterns:\n\n| Pattern | Device |\n| --- | --- |\n| /dev/fd* | Floppy disk drives |\n| /dev/hd* | IDE (PATA) disks on older systems; a trailing digit is the partition number |\n| /dev/lp* | Printers |\n| /dev/sd* | SCSI disks — the kernel treats SATA disks, flash drives and USB mass storage as SCSI |\n| /dev/sr* | Optical drives (CD/DVD readers and burners) |\n\nSymlinks like /dev/cdrom point at the real device files. Without automounting, run `tail -f /var/log/messages` while plugging in: kernel lines such as `sdb: sdb1` reveal the names. `df` then confirms the new mount.\n\n## Formatting: fdisk, mkfs, fsck\n\n**fdisk** edits the partition table of the whole device: `p` prints it, `l` lists type codes (83 is Linux), `t` changes a partition's system id, `w` writes the table, `q` quits without saving. **mkfs** (\"make file system\") then creates the file system:\n\n```bash\nmkfs -t ext4 /dev/sdb1\nmkfs -t vfat /dev/sdb1\n```\n\n**fsck** (\"file system check\") verifies integrity (in the fstab order field) and can repair damage; recovered file fragments land in the `lost+found` directory at each file system's root:\n\n```bash\nfsck /dev/sdb1\n/dev/sdb1: clean, 11/3904 files, 1661/15608 blocks\n```\n\n## Raw Data and Disk Image Files\n\n**dd** copies raw blocks — `dd if=input_file of=output_file [bs=block_size [count=blocks]]` — cloning devices (`dd if=/dev/sdb of=/dev/sdc`) or capturing a CD as an image (`dd if=/dev/cdrom of=ubuntu.iso`). It is nicknamed \"destroy disk\" — double-check if and of! **genisoimage** builds an ISO from a directory (`genisoimage -o cd-rom.iso -R -J ~/cd-rom-files`; -R adds Rock Ridge long names, -J Joliet for Windows); **wodim** blanks a CD-RW (`wodim dev=/dev/cdrw blank=fast`) and writes images (`wodim dev=/dev/cdrw image.iso`). An image can be mounted directly with the loop option:\n\n```bash\nmkdir /mnt/iso_image\nmount -t iso9660 -o loop image.iso /mnt/iso_image\n```\n\n**md5sum** computes a hexadecimal checksum representing a file's contents, verifying downloaded images and burned media.\n\n## Summary\n\n- Mounting attaches a device to the single file system tree; /etc/fstab lists boot mounts in six fields.\n- mount with no arguments lists mounted file systems; \"device is busy\" means a process still uses it.\n- Writes are buffered in memory, so unmounting before removal prevents file system corruption.\n- /dev device names follow patterns (/dev/sd*, /dev/hd*, /dev/sr*); the system log reveals hot-plugged names.\n- fdisk edits partitions, mkfs creates file systems, fsck checks and repairs them into lost+found.\n- dd copies raw blocks; genisoimage and wodim create and burn ISO images; -o loop mounts an image file; md5sum verifies integrity.",
+      "exercises": [
+        {
+          "title": "Report the attached file systems",
+          "slug": "ch15-filesystem-report",
+          "order": 1,
+          "instructions": "The chapter lists the file systems attached to the tree and confirms a new device with `df`. On your guest, capture that same picture — every attached file system and its sizes — into a report file:\n\n```bash\ndf > /root/storage_report.txt\n```\n\nInspect it with `cat /root/storage_report.txt`.",
+          "hint": "df prints one line per attached file system; redirect the whole listing with `> /root/storage_report.txt`.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/storage_report.txt",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Run `df > /root/storage_report.txt` in the terminal"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/storage_report.txt",
+              "expected_value": "Filesystem",
+              "points_weight": 5,
+              "feedback_on_failure": "Run `df > /root/storage_report.txt` so the report contains the file system listing"
+            }
+          ]
+        },
+        {
+          "title": "Explore the device directory",
+          "slug": "ch15-device-files",
+          "instructions": "All Linux devices live under /dev following the naming patterns of the chapter (/dev/fd*, /dev/hd*, /dev/sd*, /dev/sr*). Save a listing of your guest's /dev directory, then measure how much space your home directory consumes — the disk-usage counterpart of the chapter's `df` check.\n\n```bash\nls /dev > /root/dev_list.txt\ndu -s /root\n```",
+          "hint": "`ls /dev > /root/dev_list.txt` records the device files and `du -s /root` prints one usage total for your home directory.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/dev_list.txt",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Run `ls /dev > /root/dev_list.txt` in the terminal"
+            },
+            {
+              "rule_type": "output_matches",
+              "target": "du -s /root",
+              "expected_value": "[0-9]+",
+              "points_weight": 5,
+              "feedback_on_failure": "Run `du -s /root` in the terminal and confirm it prints a usage total"
+            }
+          ],
+          "order": 2
+        }
+      ]
+    },
+    {
+      "title": "Chapter 16: Networking",
+      "slug": "tlcl-ch16-networking",
+      "order": 16,
+      "is_published": true,
+      "description": "Explain how Linux monitors networks (ping, traceroute, ip, netstat) and transfers files (ftp, wget) versus doing it securely with ssh, scp and sftp. Discover which network interfaces a running kernel reports.",
+      "content": "# Chapter 16: Networking\n\nLinux is used to build firewalls, routers, name servers and network-attached storage boxes. This chapter focuses on the most frequently used command line networking tools: ping, traceroute, ip, netstat, ftp, wget and ssh. You should already know IP addresses, host and domain names, and URIs.\n\n## Examining and Monitoring a Network\n\n**ping** sends an ICMP ECHO_REQUEST packet to a host; most devices reply, verifying the connection:\n\n```bash\n[me@linuxbox ~]$ ping linuxcommand.org\nPING linuxcommand.org (66.35.250.210) 56(84) bytes of data.\n64 bytes from vhost.sourceforge.net (66.35.250.210): icmp_seq=1 ttl=43 time=107 ms\n64 bytes from vhost.sourceforge.net (66.35.250.210): icmp_seq=2 ttl=43 time=108 ms\n```\n\nAfter ctrl-C, ping prints statistics; a healthy network shows 0% packet loss. Hosts and firewalls are often configured to ignore these packets for security. **traceroute** lists the \"hops\" traffic takes to reach a host, with hostname, IP and round-trip times per router (asterisks where information is blocked; -T or -I may help).\n\n**ip** is the multipurpose configuration tool that replaces the earlier, now-deprecated **ifconfig** program:\n\n```bash\n[me@linuxbox ~]$ ip a\n1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default\n    inet 127.0.0.1/8 scope host lo\n2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP group default qlen 1000\n    inet 192.168.1.14/24 brd 192.168.1.255 scope global eth0\n```\n\n`lo` is the loopback, a virtual interface the system uses to talk to itself; `eth0` is the Ethernet interface. For casual diagnostics look for **UP** in each interface's first line and a valid address in the **inet** field — proof DHCP works. **netstat** examines settings: `-ie` lists interfaces, `-r` shows the kernel routing table, where a destination ending in .0 refers to a network, an asterisk gateway means none is needed, and the `default` row sends unlisted traffic to the router.\n\n## Transporting Files over a Network\n\n**ftp** talks to FTP servers, but original FTP is insecure: it transmits account names and passwords in cleartext. Most Internet FTP is therefore anonymous — login name `anonymous`, any password. Interactive commands: `cd` (remote directory), `ls` (remote listing), `lcd` (local directory), `get` (download), `bye` (quit). **lftp** is a better client adding HTTP support, automatic retry, background jobs and tab completion. **wget** downloads non-interactively from web and FTP sites — single files, multiple files or entire sites — and can finish partially downloaded files.\n\n## Secure Communication with Remote Hosts\n\nThe old remote-login programs rlogin and telnet share ftp's cleartext flaw. **SSH (Secure Shell)** solves two problems: it authenticates that the remote host is who it says it is (preventing man-in-the-middle attacks) and encrypts all communications. An SSH server listens by default on port 22; the client program is **ssh**, usually OpenSSH:\n\n```bash\n[me@linuxbox ~]$ ssh remote-sys\nThe authenticity of host 'remote-sys (192.168.1.4)' can't be established.\nRSA key fingerprint is 41:ed:7a:df:23:19:bf:3c:a5:17:bc:61:b3:7f:d9:bb.\nAre you sure you want to continue connecting (yes/no)? yes\nWarning: Permanently added 'remote-sys,192.168.1.4' (RSA) to the list of known hosts.\nme@remote-sys's password:\n```\n\nThe client remembers each host key in `~/.ssh/known_hosts`; a \"REMOTE HOST IDENTIFICATION HAS CHANGED\" warning means an attack or a reinstalled remote system — check with its administrator, then remove the offending line. Use `ssh bob@remote-sys` for a different username, `exit` to end the session, and single quotes to choose where a command's expansion or redirection happens:\n\n```bash\nssh remote-sys free\nssh remote-sys 'ls *' > dirlist.txt\nssh -X remote-sys\n```\n\nWith -X, X Window traffic is tunneled so remote graphical programs display locally. **scp** copies files over the tunnel like cp using `host:pathname` arguments (`scp remote-sys:document.txt .`); **sftp** is a secure ftp replacement needing only an SSH server on the remote host. Windows users can connect with the PuTTY client.\n\n## Summary\n\n- ping verifies connectivity with ICMP ECHO_REQUEST packets and reports loss and round-trip statistics.\n- traceroute lists the routers traffic crosses; ip (replacing ifconfig) and netstat show interfaces, addresses and the routing table.\n- Look for UP and a valid inet address when diagnosing; the default routing entry sends unlisted traffic to the gateway.\n- ftp, rlogin and telnet send credentials in cleartext; lftp and wget improve command line downloading.\n- SSH authenticates hosts via keys in ~/.ssh/known_hosts and encrypts everything; ssh opens remote shells and runs single commands.\n- scp and sftp copy files through the SSH tunnel; any machine running an SSH server can serve SFTP.",
+      "exercises": [
+        {
+          "title": "Find the network interfaces under /sys",
+          "slug": "ch16-list-interfaces",
+          "order": 1,
+          "instructions": "The chapter examines a system's interfaces, where lo is the loopback and eth0 the Ethernet card. Your guest has no network tools, but the kernel exposes the same inventory under /sys: list the interfaces the kernel knows about.\n\n```bash\nls /sys/class/net\n```\n\nThe output should include at least the loopback interface, `lo`.",
+          "hint": "Every network interface the kernel registers appears as a directory under /sys/class/net.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "command_exit_zero",
+              "target": "ls /sys/class/net",
+              "expected_value": "",
+              "points_weight": 4,
+              "feedback_on_failure": "Run `ls /sys/class/net` in the terminal"
+            },
+            {
+              "rule_type": "output_matches",
+              "target": "ls /sys/class/net",
+              "expected_value": "lo",
+              "points_weight": 6,
+              "feedback_on_failure": "Run `ls /sys/class/net` and check the output includes the loopback interface lo"
+            }
+          ]
+        },
+        {
+          "title": "Write a mini network report",
+          "slug": "ch16-network-report",
+          "instructions": "The chapter inspects each interface's properties; your kernel keeps the same properties in files under /sys/class/net. Build a report directory: list the interfaces into one file and read the loopback interface's MTU (the same `mtu 65536` field the book's interface listing shows) into another.\n\n```bash\nmkdir -p /root/net_report\nls /sys/class/net > /root/net_report/interfaces.txt\ncat /sys/class/net/lo/mtu > /root/net_report/lo_mtu.txt\n```",
+          "hint": "Read the MTU value with `cat /sys/class/net/lo/mtu` and store it; do the same for `ls /sys/class/net`.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/net_report/interfaces.txt",
+              "expected_value": "",
+              "points_weight": 4,
+              "feedback_on_failure": "Run `mkdir -p /root/net_report` then `ls /sys/class/net > /root/net_report/interfaces.txt`"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/net_report/interfaces.txt",
+              "expected_value": "lo",
+              "points_weight": 3,
+              "feedback_on_failure": "Run `ls /sys/class/net > /root/net_report/interfaces.txt` so the loopback interface is recorded"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/net_report/lo_mtu.txt",
+              "expected_value": "65536",
+              "points_weight": 3,
+              "feedback_on_failure": "Run `cat /sys/class/net/lo/mtu > /root/net_report/lo_mtu.txt` to store the loopback MTU"
+            }
+          ],
+          "order": 2
+        }
+      ]
+    },
+    {
+      "title": "Chapter 17: Searching for Files",
+      "slug": "tlcl-ch17-searching-for-files",
+      "order": 17,
+      "is_published": true,
+      "description": "Construct find expressions with paths, tests, wildcard patterns, logical operators and grouped parentheses, use locate's database, and batch matches with -exec plus or xargs. Search a real system tree by name and type.",
+      "content": "# Chapter 17: Searching for Files\n\nA typical Linux system has a lot of files, which raises the question \"How do we find things?\" This chapter looks at **locate** (find files by name) and **find** (search for files in a directory hierarchy), plus **xargs** (build command lines from standard input) and the helpers touch (change file times) and stat (display file status).\n\n## locate — Find Files the Easy Way\n\nlocate performs a rapid **database** search of pathnames, printing every name containing a substring:\n\n```bash\n[me@linuxbox ~]$ locate bin/zip\n/usr/bin/zip\n/usr/bin/zipcloak\n/usr/bin/zipgrep\n[me@linuxbox ~]$ locate zip | grep bin\n```\n\nModern distributions ship slocate or mlocate, usually linked as locate. The database is built by **updatedb**, typically run once a day by cron — so very recent files do not appear, and a freshly installed system may need updatedb run manually by the superuser.\n\n## find — Find Files the Hard Way\n\nfind searches a directory and its subdirectories using options, **tests** and **actions**:\n\n```bash\n[me@linuxbox ~]$ find ~ | wc -l\n47068\n[me@linuxbox ~]$ find ~ -type f -name \"*.JPG\" -size +1M | wc -l\n840\n```\n\nThe -name pattern is quoted to prevent shell pathname expansion; a leading + in -size means larger than, − smaller than, nothing exact.\n\n| Test | Description |\n| --- | --- |\n| -type c | Match file type: b block device, c character device, d directory, f regular file, l symbolic link |\n| -name pattern | Match a wildcard pattern (-iname ignores case) |\n| -size n | Match size in units b (512-byte blocks), c (bytes), w (words), k, M, G |\n| -perm mode | Match permissions, octal or symbolic |\n| -user name / -group name | Match owner or group |\n| -nouser / -nogroup | Files with no valid owner — deleted accounts or attacker activity |\n| -empty | Match empty files and directories |\n| -mtime / -mmin / -ctime / -cmin n | Time-based matches on contents or attributes |\n| -newer file | Contents modified more recently than file — the basis of scripted backups |\n| -inum n / -samefile name | Match by inode number, e.g. all hard links to one file |\n\n## Operators and Grouping\n\nLogical operators combine tests: **-and** (implied by default between terms), **-or** (-o), **-not** (!), and escaped parentheses to group expressions and control precedence:\n\n```bash\nfind ~ \\( -type f -not -perm 0600 \\) -or \\( -type d -not -perm 0700 \\)\n```\n\nShort-circuit evaluation decides what runs: with -and, expr2 is performed only if expr1 is true; with -or, only if expr1 is false. Since each test and implied -and acts on the previous result, the order of tests and actions matters.\n\n## Actions\n\n| Action | Description |\n| --- | --- |\n| -print | Output the pathname (default when no action is given) |\n| -ls | Equivalent of ls -dils on the match |\n| -delete | Delete the match — always test with -print first |\n| -quit | Quit once a match is made |\n| -exec command {} ; | Run a command per match; {} is the pathname, ; ends it, both quoted or escaped |\n| -ok command {} ; | Like -exec but prompts before each command |\n| -exec command {} + | Batch matches into one argument list, running the command once |\n\nThe external **xargs** converts standard input into an argument list:\n\n```bash\nfind ~ -type f -name 'foo*' -print | xargs ls -l\n```\n\nEmbedded spaces break this; the fix is null separation — `-print0` with `xargs --null` (or -0):\n\n```bash\nfind ~ -iname '*.jpg' -print0 | xargs --null ls -l\n```\n\n## A Return to the Playground\n\n```bash\nmkdir -p playground/dir-{001..100}\ntouch playground/dir-{001..100}/file-{A..Z}\nfind playground -type f -name 'file-A' | wc -l\ntouch playground/timestamp\nfind playground -type f -name 'file-B' -exec touch '{}' ';'\nfind playground -type f -newer playground/timestamp\n```\n\ntouch updates file times or creates empty files; stat reveals all the system knows about one. Unlike ls, find does not sort its output. Scope options include -maxdepth/-mindepth levels, -depth (files before the directory, automatic with -delete), -mount (don't cross file systems) and -noleaf (for DOS/Windows media and CD-ROMs).\n\n## Summary\n\n- locate does a fast substring search of a pathname database kept current by updatedb via cron.\n- find applies tests (-type, -name, -size, -perm, -user, -newer, -mtime) and actions (-print, -ls, -delete, -exec, -ok) to a directory tree.\n- Logical operators -and, -or and -not with escaped parentheses build grouped expressions; short-circuit logic makes test order matter.\n- -exec with ; runs once per file; with + — or piping through xargs — batches matches into a single command.\n- Use -print0 with xargs --null to handle filenames with spaces or newlines.\n- A touch-ed reference timestamp plus -newer identifies files changed since the last backup.",
+      "exercises": [
+        {
+          "title": "Search /etc by name pattern",
+          "slug": "ch17-find-etc-conf",
+          "order": 1,
+          "instructions": "Use find with a type test and a quoted wildcard pattern to locate every configuration file, just like the book's `-name \"*.JPG\"` example:\n\n```bash\nfind /etc -name \"*.conf\" -print\n```\n\nThe command must complete successfully and print the matching pathnames.",
+          "hint": "Quote the pattern as \"*.conf\" so the shell does not expand it before find receives it.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "command_exit_zero",
+              "target": "find /etc -name \"*.conf\" -print",
+              "expected_value": "",
+              "points_weight": 6,
+              "feedback_on_failure": "Run `find /etc -name \"*.conf\" -print` in the terminal"
+            },
+            {
+              "rule_type": "file_exists",
+              "target": "/etc",
+              "expected_value": "",
+              "points_weight": 4,
+              "feedback_on_failure": "Run `find /etc -name \"*.conf\" -print` — /etc is the search path"
+            }
+          ]
+        },
+        {
+          "title": "Build a playground and search it",
+          "slug": "ch17-playground-search",
+          "instructions": "Recreate a small version of the book's playground (the guest shell has no brace expansion, creating two directories explicitly), then practice the tests: a name pattern, a type test, and -newer against a timestamp reference file.\n\n```bash\nmkdir -p /root/playground/dir-001 /root/playground/dir-002\ntouch /root/playground/dir-001/file-A /root/playground/dir-002/file-A\ntouch /root/playground/timestamp\ntouch /root/playground/dir-001/file-A\nfind /root/playground -type f -name \"file-A\" | wc -l\nfind /root/playground -type f -name \"file-A\" -newer /root/playground/timestamp\n```",
+          "hint": "The order of the touch commands matters: create the timestamp file first, then re-touch dir-001/file-A so it is newer.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/playground/dir-001/file-A",
+              "expected_value": "",
+              "points_weight": 3,
+              "feedback_on_failure": "Run `mkdir -p /root/playground/dir-001` then `touch /root/playground/dir-001/file-A`"
+            },
+            {
+              "rule_type": "file_exists",
+              "target": "/root/playground/timestamp",
+              "expected_value": "",
+              "points_weight": 3,
+              "feedback_on_failure": "Run `touch /root/playground/timestamp` to create the reference file"
+            },
+            {
+              "rule_type": "output_matches",
+              "target": "find /root/playground -type f -name \"file-A\" | wc -l",
+              "expected_value": "2",
+              "points_weight": 4,
+              "feedback_on_failure": "Run `find /root/playground -type f -name \"file-A\" | wc -l` — it should print 2"
+            }
+          ],
+          "order": 2
+        }
+      ]
+    },
+    {
+      "title": "Chapter 18: Archiving and Backup",
+      "slug": "tlcl-ch18-archiving-and-backup",
+      "order": 18,
+      "is_published": true,
+      "description": "Compress files with gzip and bzip2, create, list, extract and append tar archives including gzipped ones and incremental backups via find -newer, and understand what zip and rsync add.",
+      "content": "# Chapter 18: Archiving and Backup\n\nKeeping a system's data secure means timely backups and moving large collections of files from place to place. This chapter covers the file compression programs **gzip** and **bzip2**, the archiving programs **tar** and **zip**, and the file synchronization program **rsync**.\n\n## Compressing Files\n\nData compression removes redundancy from data: a 100 x 100 all-black image occupies 30,000 bytes that run-length encoding shrinks to \"10,000 black pixels.\" Algorithms are **lossless** (restored exactly) or **lossy** (JPEG, MP3). Computer data cannot tolerate loss, so these tools are lossless.\n\ngzip compresses a file, replacing the original with a `.gz` version; gunzip restores it:\n\n```bash\n[me@linuxbox ~]$ ls -l /etc > foo.txt\n[me@linuxbox ~]$ gzip foo.txt\n[me@linuxbox ~]$ ls -l foo.*\n-rw-r--r-- 1 me    me    3230 2018-10-14 07:15 foo.txt.gz\n[me@linuxbox ~]$ gunzip foo.txt\n```\n\nThe compressed file keeps the original's permissions and timestamp. Key options: -c write to standard output and keep originals, -d decompress, -f force, -l list statistics, -r recurse, -t test integrity, -v verbose, and -1 to -9 (default 6). Pipelines: `ls -l /etc | gzip > foo.txt.gz` compresses a listing; `gunzip -c` (or zcat) restores to stdout. **bzip2** compresses harder than gzip at the cost of speed; files end in `.bz2`, with bunzip2, bzcat and bzip2recover for damaged archives. Don't compress already-compressed files — the overhead makes them larger.\n\n## Archiving Files with tar\n\nArchiving bundles many files into a single large file. **tar** (\"tape archive\") is the classic tool; archives end in `.tar` or `.tgz`. Syntax: `tar mode[options] pathname...`:\n\n| Mode | Description |\n| --- | --- |\n| c | Create an archive from files or directories |\n| x | Extract an archive |\n| r | Append specified pathnames to the end of an archive |\n| t | List the contents of an archive |\n\n```bash\ntar cf playground.tar playground\ntar tf playground.tar\ncd foo\ntar xf ../playground.tar\n```\n\nThe mode comes first; options like f (archive name) and v (verbose) join it. tar strips leading slashes, so archive pathnames are **relative** — an archive made from /home/me/playground re-creates home/me/playground under the current directory, which is why a system restore begins with `cd /`. Extract single files by trailing pathname, or with GNU tar's `--wildcards` option; append found files with find:\n\n```bash\ntar xf ../playground2.tar --wildcards 'home/me/playground/dir-*/file-A'\nfind playground -name 'file-A' -exec tar rf playground.tar '{}' '+'\n```\n\nMatching files **newer than a timestamp file** updated after each archive gives incremental backups. GNU tar compresses directly with the z and j options, and `-` means standard input or output:\n\n```bash\nfind playground -name 'file-A' | tar czf playground.tgz -T -\ntar cjf playground.tbz playground\n```\n\nPiped over an encrypted remote connection, two tar streams transfer whole directories between machines.\n\n## zip\n\n**zip** is both compressor and archiver, reading and writing the Windows-familiar .zip format:\n\n```bash\nzip -r playground.zip playground\nfind playground -name \"file-A\" | zip -@ file-A.zip\n```\n\nUnlike tar, zip **updates** an existing archive rather than replacing it. unzip lists with -l, extracts selected members, prompts before replacing files, and sends content to standard output with -p; since it cannot read standard input, zip/unzip cannot do the network trick tar manages. Their main use is exchanging files with Windows systems.\n\n## rsync — Synchronizing Files and Directories\n\n**rsync** (`rsync options source destination`) detects the differences between directories and copies the minimum required.\n\n```bash\nrsync -av playground foo\nrsync -av --delete /etc /home /usr/local /media/BigDisk/backup\nrsync -av --delete --rsh=ssh /etc /home /usr/local remote-sys:/backup\n```\n\n-a means archive (recursion plus preservation of attributes), -v is verbose, --delete removes destination files no longer present on the source. The trailing slash matters: `rsync source destination` copies the directory itself into destination; `rsync source/ destination` copies only its contents. Remote copying uses an encrypted remote shell (--rsh=ssh, `host:path`) or `rsync://` servers; either source or destination must be local.\n\n## Summary\n\n- Lossless compression removes redundancy and restores the exact original; lossy (JPEG, MP3) only approximates it.\n- gzip/bzip2 replace files with .gz/.bz2 versions, preserving permissions and timestamps; -t verifies integrity.\n- tar archives with modes c (create), t (list), x (extract), r (append); archive pathnames are relative, so restore from /.\n- find -newer timestamps plus tar r mode make incremental backups; z and j compress in one step (.tgz/.tbz).\n- zip/unzip serve Windows interoperability; zip updates existing archives.\n- rsync mirrors directories efficiently with -a, --delete, the trailing-slash rule, ssh transport and rsync:// servers.",
+      "exercises": [
+        {
+          "title": "Create and extract a tar archive",
+          "slug": "ch18-tar-create-extract",
+          "order": 1,
+          "instructions": "Build a small tree, archive it with tar's create mode plus gzip compression (the z option), and extract it into a fresh directory to prove the round trip works:\n\n```bash\nmkdir -p /root/sandbox/data\necho \"backup me\" > /root/sandbox/data/notes.txt\ntar -czf /root/sandbox.tar.gz -C /root sandbox\nmkdir -p /root/restore\ntar -xzf /root/sandbox.tar.gz -C /root/restore\n```\n\nBefore extracting, list the archive the way the chapter lists archives: `tar -tzf /root/sandbox.tar.gz`.",
+          "hint": "tar mode letters are c (create), x (extract), t (list); f names the archive and z adds gzip compression.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/sandbox.tar.gz",
+              "expected_value": "",
+              "points_weight": 4,
+              "feedback_on_failure": "Run `tar -czf /root/sandbox.tar.gz -C /root sandbox`"
+            },
+            {
+              "rule_type": "file_exists",
+              "target": "/root/restore/sandbox/data/notes.txt",
+              "expected_value": "",
+              "points_weight": 4,
+              "feedback_on_failure": "Run `tar -xzf /root/sandbox.tar.gz -C /root/restore` to extract the archive"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/restore/sandbox/data/notes.txt",
+              "expected_value": "backup me",
+              "points_weight": 2,
+              "feedback_on_failure": "Re-run `tar -xzf /root/sandbox.tar.gz -C /root/restore` and check notes.txt"
+            }
+          ]
+        },
+        {
+          "title": "Compress and verify a text file",
+          "slug": "ch18-gzip-verify",
+          "instructions": "Reproduce the book's gzip session on your own system listing, then test the compressed file's integrity with -t exactly as the chapter shows:\n\n```bash\nls -l /etc > /root/foo.txt\ngzip /root/foo.txt\ngzip -tv /root/foo.txt.gz\n```\n\nAfter this, /root/foo.txt.gz exists and gzip has replaced the original /root/foo.txt with the compressed version.",
+          "hint": "gzip removes the uncompressed original when it succeeds; verify the result with `gzip -tv /root/foo.txt.gz`.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/foo.txt.gz",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Run `ls -l /etc > /root/foo.txt` then `gzip /root/foo.txt`"
+            },
+            {
+              "rule_type": "file_not_exists",
+              "target": "/root/foo.txt",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Run `gzip /root/foo.txt` — the original should be replaced by the .gz version"
+            }
+          ],
+          "order": 2
+        }
+      ]
+    }
+  ]
+}
