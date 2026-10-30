@@ -418,3 +418,132 @@ export function QuizResultSkeleton() {
     </div>
   );
 }
+
+/* ---------------------------------- learn ---------------------------------- */
+
+/** Roadmap view skeleton — shown while the plan list loads from the API. */
+export function LearnRoadmapSkeleton() {
+  return (
+    <div aria-hidden="true">
+      {/* Hero banner */}
+      <div
+        style={{
+          borderRadius: 16,
+          background: 'rgba(22,27,34,0.9)',
+          border: `1px solid ${LINE}`,
+          padding: '40px 40px 32px',
+          marginBottom: 32,
+          overflow: 'hidden',
+          position: 'relative',
+        }}
+      >
+        <Skeleton width={220} height={24} radius={9999} style={{ marginBottom: 20 }} />
+        <Skeleton width="55%" height={40} style={{ marginBottom: 14 }} />
+        <Skeleton width="72%" height={14} style={{ marginBottom: 8 }} />
+        <Skeleton width="60%" height={14} style={{ marginBottom: 28 }} />
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <Skeleton width={200} height={44} radius={12} />
+          <Skeleton width={220} height={44} radius={12} />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginTop: 32, paddingTop: 24, borderTop: `1px solid ${LINE}` }}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Skeleton width={16} height={16} radius={4} />
+              <Skeleton width="70%" height={12} />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Plan tabs */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+        {[140, 160, 150, 155].map((w, i) => (
+          <Skeleton key={i} width={w} height={36} radius={9999} />
+        ))}
+      </div>
+
+      {/* Lesson cards grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div
+            key={i}
+            style={{
+              borderRadius: 16,
+              border: `1px solid ${LINE}`,
+              background: 'rgba(255,255,255,0.02)',
+              padding: '20px 20px 16px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 10,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Skeleton width={32} height={32} radius={9999} style={{ flexShrink: 0 }} />
+              <Skeleton width="65%" height={14} />
+            </div>
+            <Skeleton width="90%" height={11} />
+            <Skeleton width="75%" height={11} />
+            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+              <Skeleton width={70} height={22} radius={9999} />
+              <Skeleton width={80} height={22} radius={9999} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Chapter view skeleton — shown while a lesson's content loads. */
+export function LearnChapterSkeleton() {
+  return (
+    <div aria-hidden="true" style={{ width: '100%' }}>
+      {/* Breadcrumb */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24, paddingBottom: 12, borderBottom: `1px solid ${LINE}` }}>
+        <Skeleton width={70} height={18} radius={6} />
+        <Skeleton width={8} height={8} radius={2} />
+        <Skeleton width={140} height={14} radius={6} />
+        <Skeleton width={8} height={8} radius={2} />
+        <Skeleton width={220} height={14} radius={6} />
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+          <Skeleton width={110} height={32} radius={8} />
+          <Skeleton width={90} height={32} radius={8} />
+        </div>
+      </div>
+
+      {/* Chapter header */}
+      <Skeleton width={160} height={13} style={{ marginBottom: 12 }} />
+      <Skeleton width="60%" height={36} style={{ marginBottom: 12 }} />
+      <Skeleton width="80%" height={14} style={{ marginBottom: 6 }} />
+      <Skeleton width="68%" height={14} style={{ marginBottom: 32 }} />
+
+      {/* Body paragraphs */}
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} style={{ marginBottom: 24 }}>
+          {i % 3 === 0 && <Skeleton width="38%" height={20} style={{ marginBottom: 12 }} />}
+          <Skeleton width="100%" height={13} style={{ marginBottom: 7 }} />
+          <Skeleton width="97%" height={13} style={{ marginBottom: 7 }} />
+          <Skeleton width="92%" height={13} style={{ marginBottom: 7 }} />
+          <Skeleton width={i % 2 === 0 ? '75%' : '60%'} height={13} />
+        </div>
+      ))}
+
+      {/* Code block placeholder */}
+      <div style={{ borderRadius: 12, border: `1px solid ${LINE}`, background: 'rgba(13,17,23,0.9)', padding: '16px 20px', marginBottom: 24 }}>
+        <Skeleton width="55%" height={12} style={{ marginBottom: 10 }} />
+        <Skeleton width="80%" height={12} style={{ marginBottom: 8 }} />
+        <Skeleton width="65%" height={12} style={{ marginBottom: 8 }} />
+        <Skeleton width="45%" height={12} />
+      </div>
+
+      {/* More paragraphs */}
+      {Array.from({ length: 2 }).map((_, i) => (
+        <div key={i} style={{ marginBottom: 24 }}>
+          <Skeleton width="100%" height={13} style={{ marginBottom: 7 }} />
+          <Skeleton width="94%" height={13} style={{ marginBottom: 7 }} />
+          <Skeleton width="70%" height={13} />
+        </div>
+      ))}
+    </div>
+  );
+}

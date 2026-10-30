@@ -12,6 +12,7 @@ import { GUEST_UNAVAILABLE_COMMANDS } from '../features/terminal/guestPackages.j
 import { learningApi } from '../services/learningApi.js';
 import { LEARNING_CURRICULUM } from '../features/learning/learningData.js';
 import { THEME, SANS } from '../theme/designTokens.js';
+import { LearnRoadmapSkeleton, LearnChapterSkeleton } from '../components/Skeleton.jsx';
 import {
   BookOpen,
   CheckCircle2,
@@ -55,6 +56,7 @@ const hastText = (node) => {
 export default function LearnLinuxPage({ onNavigate }) {
   const terminalRef = useRef(null);
   const [plans, setPlans] = useState([]);
+  const [plansLoading, setPlansLoading] = useState(true);
   const [activePlanSlug, setActivePlanSlug] = useState(null);
   const [activeLessonId, setActiveLessonId] = useState(null); // null = Roadmap view
   const [activeLessonData, setActiveLessonData] = useState(null);
@@ -96,6 +98,7 @@ export default function LearnLinuxPage({ onNavigate }) {
     learningApi.getPlans().then((data) => {
       if (mounted) {
         setPlans(data || LEARNING_CURRICULUM.plans);
+        setPlansLoading(false);
       }
     });
 
@@ -544,7 +547,10 @@ export default function LearnLinuxPage({ onNavigate }) {
         {/* ============================================================ */}
         {!activeLessonId ? (
           <div>
-            {/* Hero Banner */}
+            {plansLoading ? (
+              <LearnRoadmapSkeleton />
+            ) : (
+            <>{/* Hero Banner */}
             <div className="relative rounded-2xl bg-gradient-to-br from-[#161B22] via-[#161B22] to-[#1F242C] border border-[#30363D] p-6 sm:p-10 mb-10 overflow-hidden shadow-2xl">
               <div className="absolute top-0 right-0 w-96 h-96 bg-[#E05A38]/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -708,6 +714,8 @@ export default function LearnLinuxPage({ onNavigate }) {
                   );
                 })}
             </div>
+            </>
+            )}
           </div>
         ) : (
           /* ============================================================ */
@@ -716,7 +724,10 @@ export default function LearnLinuxPage({ onNavigate }) {
           /* Full-width document: the terminal floats, so the reading
              column no longer shares the grid with it. */
           <div className="w-full">
-            {/* Room Breadcrumb Bar */}
+            {!activeLessonData ? (
+              <LearnChapterSkeleton />
+            ) : (
+            <>{/* Room Breadcrumb Bar */}
             <div className="flex flex-wrap items-center justify-between gap-3 mb-6 pb-3 border-b border-[#21262D]">
               <div className="flex items-center gap-2 text-xs sm:text-sm">
                 <button
@@ -912,6 +923,8 @@ export default function LearnLinuxPage({ onNavigate }) {
                   )}
                 </div>
               </div>
+            </> /* end activeLessonData content */
+            )} {/* end !activeLessonData skeleton */}
 
               {/* Floating terminal launcher */}
               {!isTerminalOpen && (
