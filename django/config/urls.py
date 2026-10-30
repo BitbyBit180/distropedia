@@ -4,7 +4,9 @@ Route order matters: static segments (`popular`, `categories`, `compare`) are
 matched before `<key>`, so those words are never treated as a distro id.
 """
 
+from django.conf import settings
 from django.contrib import admin
+from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.urls import re_path
 
 from apps.accounts import api as accounts_api
@@ -121,3 +123,6 @@ urlpatterns = [
     # ---- anything not under /api -> 404 (the API is the only thing served) ----
     re_path(r"^api(?:/|$)", api_not_found),
 ]
+
+if settings.DEBUG:
+    urlpatterns += staticfiles_urlpatterns()

@@ -8,6 +8,9 @@ in production). Secrets and knobs live in django/.env — see .env.example.
 import os
 from pathlib import Path
 
+from django.urls import reverse_lazy
+from django.utils.translation import gettext_lazy as _
+
 from config.env import env, env_bool, env_list
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,6 +24,10 @@ ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", ["*"])
 CLIENT_URL = env("CLIENT_URL", "http://localhost:5173")
 
 INSTALLED_APPS = [
+    "unfold",
+    "unfold.contrib.filters",
+    "unfold.contrib.forms",
+    "unfold.contrib.inlines",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -84,6 +91,8 @@ DATABASES = {
 # matches instead.
 
 AUTH_USER_MODEL = "accounts.User"
+LOGIN_REDIRECT_URL = "/admin/"
+LOGIN_URL = "/admin/login/"
 
 PASSWORD_HASHERS = [
     # bcrypt at cost 10 — the API's hash format ($2b$10$…)
@@ -137,4 +146,189 @@ LOGGING = {
     "disable_existing_loggers": False,
     "handlers": {"console": {"class": "logging.StreamHandler"}},
     "root": {"handlers": ["console"], "level": "INFO"},
+}
+
+# ---- Django Unfold UI Configuration ----
+UNFOLD = {
+    "SITE_TITLE": "DistroPedia Command Center",
+    "SITE_HEADER": "DistroPedia",
+    "SITE_SUBHEADER": "Linux Distribution Hub & Learning Management",
+    "SITE_URL": "/",
+    "SITE_SYMBOL": "terminal",
+    "SHOW_HISTORY": True,
+    "SHOW_VIEW_ON_SITE": True,
+    "THEME": "dark",
+    "LOGIN": {
+        "redirect_after": reverse_lazy("admin:index"),
+    },
+    "ENVIRONMENT": "apps.core.dashboard.environment_callback",
+    "DASHBOARD_CALLBACK": "apps.core.dashboard.dashboard_callback",
+    "COLORS": {
+        "primary": {
+            "50": "#fff7ed",
+            "100": "#ffedd5",
+            "200": "#fed7aa",
+            "300": "#fdba74",
+            "400": "#fb923c",
+            "500": "#f97316",
+            "600": "#ea580c",
+            "700": "#c2410c",
+            "800": "#9a3412",
+            "900": "#7c2d12",
+            "950": "#431407",
+        },
+    },
+    "COMMAND": {
+        "search_models": True,
+        "show_history": True,
+    },
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": False,
+        "navigation": [
+            {
+                "title": _("Catalogue"),
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": _("Linux Distros"),
+                        "icon": "terminal",
+                        "link": reverse_lazy("admin:catalogue_distro_changelist"),
+                        "badge": "apps.core.dashboard.total_distros_badge",
+                    },
+                    {
+                        "title": _("Distro Flavours"),
+                        "icon": "category",
+                        "link": reverse_lazy("admin:catalogue_flavour_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": _("Community & Moderation"),
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": _("Reports Queue"),
+                        "icon": "gavel",
+                        "link": reverse_lazy("admin:community_report_changelist"),
+                        "badge": "apps.core.dashboard.pending_reports_badge",
+                    },
+                    {
+                        "title": _("Posts & Discussions"),
+                        "icon": "forum",
+                        "link": reverse_lazy("admin:community_post_changelist"),
+                    },
+                    {
+                        "title": _("Comments"),
+                        "icon": "chat_bubble",
+                        "link": reverse_lazy("admin:community_comment_changelist"),
+                    },
+                    {
+                        "title": _("Votes"),
+                        "icon": "thumb_up",
+                        "link": reverse_lazy("admin:community_vote_changelist"),
+                    },
+                    {
+                        "title": _("Notifications"),
+                        "icon": "notifications",
+                        "link": reverse_lazy("admin:community_notification_changelist"),
+                    },
+                    {
+                        "title": _("Audit Log"),
+                        "icon": "history_toggle_off",
+                        "link": reverse_lazy("admin:community_auditlog_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": _("Learning Platform"),
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": _("Learning Plans"),
+                        "icon": "school",
+                        "link": reverse_lazy("admin:learning_learningplan_changelist"),
+                    },
+                    {
+                        "title": _("Lessons"),
+                        "icon": "menu_book",
+                        "link": reverse_lazy("admin:learning_lesson_changelist"),
+                    },
+                    {
+                        "title": _("Practical Exercises"),
+                        "icon": "code",
+                        "link": reverse_lazy("admin:learning_practicalexercise_changelist"),
+                    },
+                    {
+                        "title": _("Verification Rules"),
+                        "icon": "rule",
+                        "link": reverse_lazy("admin:learning_verificationrule_changelist"),
+                    },
+                    {
+                        "title": _("Assessments"),
+                        "icon": "quiz",
+                        "link": reverse_lazy("admin:learning_assessment_changelist"),
+                    },
+                    {
+                        "title": _("Assessment Questions"),
+                        "icon": "help_outline",
+                        "link": reverse_lazy("admin:learning_assessmentquestion_changelist"),
+                    },
+                    {
+                        "title": _("User Lesson Progress"),
+                        "icon": "trending_up",
+                        "link": reverse_lazy("admin:learning_userlessonprogress_changelist"),
+                    },
+                    {
+                        "title": _("Exercise Attempts"),
+                        "icon": "fact_check",
+                        "link": reverse_lazy("admin:learning_exerciseattempt_changelist"),
+                    },
+                    {
+                        "title": _("Assessment Attempts"),
+                        "icon": "military_tech",
+                        "link": reverse_lazy("admin:learning_assessmentattempt_changelist"),
+                    },
+                    {
+                        "title": _("User Achievements"),
+                        "icon": "emoji_events",
+                        "link": reverse_lazy("admin:learning_userachievement_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": _("AI Chatbot"),
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": _("Chat Sessions"),
+                        "icon": "smart_toy",
+                        "link": reverse_lazy("admin:chat_chat_changelist"),
+                    },
+                    {
+                        "title": _("Chat Messages"),
+                        "icon": "question_answer",
+                        "link": reverse_lazy("admin:chat_chatmessage_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": _("Access & Identity"),
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": _("Users & Admins"),
+                        "icon": "group",
+                        "link": reverse_lazy("admin:accounts_user_changelist"),
+                        "badge": "apps.core.dashboard.total_users_badge",
+                    },
+                ],
+            },
+        ],
+    },
 }

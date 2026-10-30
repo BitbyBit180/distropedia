@@ -1,0 +1,148 @@
+{% extends 'admin/base.html' %}
+{% load i18n static unfold %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block branding %}
+    {% include "unfold/helpers/site_branding.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-6">
+
+    {% if stats %}
+    <!-- KPI Overview Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Distros Card -->
+        <a href="{% url 'admin:catalogue_distro_changelist' %}" class="bg-white border border-base-200 dark:bg-base-900 dark:border-base-800 rounded-default p-5 shadow-xs flex flex-col justify-between hover:border-primary-500 transition-colors">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-xs uppercase tracking-wider font-semibold text-subtle">Linux Catalogue</span>
+                <span class="material-symbols-outlined text-primary-600 dark:text-primary-400">terminal</span>
+            </div>
+            <div>
+                <div class="text-3xl font-bold text-important">{{ stats.catalogue.distros }}</div>
+                <div class="text-xs text-subtle mt-1 flex items-center gap-2">
+                    <span class="text-primary-600 font-medium">{{ stats.catalogue.popular }} popular</span>
+                    <span>•</span>
+                    <span>{{ stats.catalogue.flavours }} flavours</span>
+                </div>
+            </div>
+        </a>
+
+        <!-- Users Card -->
+        <a href="{% url 'admin:accounts_user_changelist' %}" class="bg-white border border-base-200 dark:bg-base-900 dark:border-base-800 rounded-default p-5 shadow-xs flex flex-col justify-between hover:border-primary-500 transition-colors">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-xs uppercase tracking-wider font-semibold text-subtle">Users & Accounts</span>
+                <span class="material-symbols-outlined text-blue-500">group</span>
+            </div>
+            <div>
+                <div class="text-3xl font-bold text-important">{{ stats.users.total }}</div>
+                <div class="text-xs text-subtle mt-1 flex items-center gap-2">
+                    <span class="text-emerald-500 font-medium">+{{ stats.users.new_this_week }} this week</span>
+                </div>
+            </div>
+        </a>
+
+        <!-- Moderation Card -->
+        <a href="{% url 'admin:community_report_changelist' %}" class="bg-white border {% if stats.community.open_reports > 0 %}border-red-400 dark:border-red-600/80 bg-red-500/5{% else %}border-base-200 dark:border-base-800{% endif %} dark:bg-base-900 rounded-default p-5 shadow-xs flex flex-col justify-between hover:border-primary-500 transition-colors">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-xs uppercase tracking-wider font-semibold {% if stats.community.open_reports > 0 %}text-red-500 font-bold{% else %}text-subtle{% endif %}">Moderation Queue</span>
+                <span class="material-symbols-outlined {% if stats.community.open_reports > 0 %}text-red-500 animate-pulse{% else %}text-subtle{% endif %}">gavel</span>
+            </div>
+            <div>
+                <div class="text-3xl font-bold {% if stats.community.open_reports > 0 %}text-red-500{% else %}text-important{% endif %}">{{ stats.community.open_reports }}</div>
+                <div class="text-xs text-subtle mt-1 flex items-center gap-2">
+                    <span>{{ stats.community.resolved_reports }} resolved reports</span>
+                </div>
+            </div>
+        </a>
+
+        <!-- Learning Card -->
+        <a href="{% url 'admin:learning_learningplan_changelist' %}" class="bg-white border border-base-200 dark:bg-base-900 dark:border-base-800 rounded-default p-5 shadow-xs flex flex-col justify-between hover:border-primary-500 transition-colors">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-xs uppercase tracking-wider font-semibold text-subtle">Learning Platform</span>
+                <span class="material-symbols-outlined text-amber-500">school</span>
+            </div>
+            <div>
+                <div class="text-3xl font-bold text-important">{{ stats.learning.plans }} Plans</div>
+                <div class="text-xs text-subtle mt-1 flex items-center gap-2">
+                    <span>{{ stats.learning.lessons }} lessons</span>
+                    <span>•</span>
+                    <span class="text-emerald-500 font-medium">{{ stats.learning.passed_exercises }} passed labs</span>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <!-- Secondary Stats Bar -->
+    <div class="bg-base-100 dark:bg-base-900/60 border border-base-200 dark:border-base-800 rounded-default p-4 flex flex-wrap items-center justify-between gap-4 text-xs text-subtle">
+        <div class="flex items-center gap-6">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-base">forum</span>
+                <span class="text-important font-semibold">{{ stats.community.posts }}</span> Posts
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-base">chat_bubble</span>
+                <span class="text-important font-semibold">{{ stats.community.comments }}</span> Comments
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-base">smart_toy</span>
+                <span class="text-important font-semibold">{{ stats.chat.chats }}</span> AI Chats ({{ stats.chat.messages }} msgs)
+            </div>
+        </div>
+        <div class="flex items-center gap-4">
+            <a href="{{ stats.system.client_url }}" target="_blank" rel="noopener noreferrer" class="text-primary-600 hover:underline flex items-center gap-1 font-medium">
+                <span class="material-symbols-outlined text-sm">open_in_new</span>Open Client UI ({{ stats.system.client_url }})
+            </a>
+            <span class="px-2 py-0.5 rounded bg-base-200 dark:bg-base-800 text-important uppercase text-[10px] tracking-wide font-mono">
+                {{ stats.system.environment }}
+            </span>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if recent_reports %}
+    <!-- Open Reports Alert Box -->
+    <div class="bg-red-500/10 border border-red-500/30 rounded-default p-5 flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2 text-red-500 font-bold text-sm">
+                <span class="material-symbols-outlined">warning</span>
+                <span>Active Moderation Reports Requiring Attention ({{ recent_reports|length }})</span>
+            </div>
+            <a href="{% url 'admin:community_report_changelist' %}?status__exact=open" class="text-xs text-red-500 hover:underline font-semibold flex items-center gap-1">
+                View All Pending Reports →
+            </a>
+        </div>
+        <div class="divide-y divide-base-200 dark:divide-base-800">
+            {% for report in recent_reports %}
+            <div class="py-2.5 flex items-center justify-between text-xs">
+                <div class="flex items-center gap-3">
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-red-600 text-white">{{ report.reason }}</span>
+                    <span class="text-important font-medium">Target: {{ report.target_type }} #{{ report.target_id }}</span>
+                    {% if report.detail %}
+                        <span class="text-subtle truncate max-w-md">“{{ report.detail }}”</span>
+                    {% endif %}
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="text-subtle font-mono">{{ report.created_at|timesince }} ago</span>
+                    <a href="{% url 'admin:community_report_change' report.pk %}" class="px-2.5 py-1 rounded bg-primary-600 hover:bg-primary-700 text-white font-medium text-[11px] transition-colors">
+                        Review & Resolve
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Standard Applications & History Row -->
+    <div class="flex flex-col lg:flex-row gap-6">
+        <div class="flex flex-col gap-5 grow">
+            {% include "unfold/helpers/app_list_default.html" with show_changelinks=True %}
+        </div>
+
+        {% include "unfold/helpers/history.html" %}
+    </div>
+
+</div>
+{% endblock %}

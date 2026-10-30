@@ -6,3 +6,4 @@ python-dotenv>=1.0
 gunicorn>=21.0
 dj-database-url>=2.2
 psycopg2-binary>=2.9
+django-unfold>=0.110.0

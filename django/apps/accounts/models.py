@@ -5,8 +5,31 @@ Rules: unique lowercase email, bcrypt password hash
 hashed single-use 6-digit reset token with an expiry.
 """
 
-from django.contrib.auth.base_user import AbstractBaseUser
+from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.db import models
+
+
+class UserManager(BaseUserManager):
+    def get_by_natural_key(self, username):
+        return self.get(**{self.model.USERNAME_FIELD: (username or "").strip().lower()})
+
+    def create_user(self, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError("Email is required")
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        if password:
+            user.set_password(password)
+        else:
+            user.set_unusable_password()
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, password=None, **extra_fields):
+        extra_fields.setdefault("is_admin", True)
+        if extra_fields.get("is_admin") is not True:
+            raise ValueError("Superuser must have is_admin=True")
+        return self.create_user(email, password, **extra_fields)
 
 
 class User(AbstractBaseUser):
@@ -21,6 +44,8 @@ class User(AbstractBaseUser):
     reset_token_expiry = models.DateTimeField(null=True, blank=True, default=None)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    objects = UserManager()
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS: list[str] = []

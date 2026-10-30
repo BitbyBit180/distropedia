@@ -30,6 +30,7 @@ logs
 
 # Local ZCode agent workspace artifacts
 .zcode/
+*.pdf
 
 # Google OAuth secrets (never commit)
 client_secret*.json
