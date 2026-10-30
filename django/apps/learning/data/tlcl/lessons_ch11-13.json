@@ -1,0 +1,178 @@
+{
+  "lessons": [
+    {
+      "title": "Chapter 11: The Environment",
+      "slug": "tlcl-ch11-the-environment",
+      "order": 11,
+      "is_published": true,
+      "description": "Read, set and export environment variables, and see how the bash startup files build your personal environment. After this lesson you can safely edit .bashrc to persist variables, history settings and aliases.",
+      "content": "# Chapter 11: The Environment\n\nThe shell maintains a body of information during a session called the **environment**. Programs use it to determine facts about the system's configuration, so we can use it to customize our shell experience. This chapter works with `printenv`, `set`, `export` and `alias`.\n\n## Examining the Environment\n\nThe shell stores **environment variables** and **shell variables** (data placed there by bash), plus aliases and shell functions. The contents list is long, so pipe it into a pager:\n\n```bash\n[me@linuxbox ~]$ printenv | less\nUSER=me\nPAGER=less\nHOME=/home/me\n```\n\n`printenv USER` displays a single variable; `set` (without arguments) shows both shell and environment variables, sorted alphabetically, plus shell functions. Neither displays **aliases**; the `alias` command without arguments shows entries like `alias vi='vim'`.\n\n## Some Interesting Variables\n\n| Variable | Contents |\n| --- | --- |\n| DISPLAY | X display name, usually `:0` |\n| EDITOR | The program used for text editing |\n| SHELL | The name of your shell program |\n| HOME | The pathname of your home directory |\n| LANG | Character set and collation order of your language |\n| OLDPWD | The previous working directory |\n| PAGER | The program used for paging output |\n| PATH | Colon-separated list of directories searched for command names |\n| PS1 | \"Prompt string 1\" — defines the shell prompt |\n| PWD | The current working directory |\n| TERM | The name of your terminal type |\n| TZ | Your time zone; the clock is kept in UTC |\n| USER | Your username |\n\nMissing values vary by distribution.\n\n## How Is the Environment Established?\n\nWhen we log on, bash reads **startup files**: global files defining the default environment shared by all users, then files in our home directory defining our personal environment. The sequence depends on the session type: a **login shell** (we are prompted for our username and password, e.g. a virtual console) or a **non-login shell** (a terminal session in the GUI).\n\n| File | Read by |\n| --- | --- |\n| /etc/profile | Login shells — global script for all users |\n| ~/.bash_profile | Login shells — personal startup file; can override global settings |\n| ~/.bash_login | Login shells — if ~/.bash_profile is not found |\n| ~/.profile | Login shells — if neither exists; the Debian-based default |\n| /etc/bash.bashrc | Non-login shells — global script for all users |\n| ~/.bashrc | Non-login shells — personal startup file |\n\nNon-login shells also inherit the environment from their parent process, usually a login shell. `~/.bashrc` is the most important startup file for the ordinary user, because it is almost always read.\n\n## What's in a Startup File?\n\nA typical `.bash_profile` (from a CentOS 6 system):\n\n```bash\n# .bash_profile\n\n# Get the aliases and functions\nif [ -f ~/.bashrc ]; then\n        . ~/.bashrc\nfi\n\n# User specific environment and startup programs\n\nPATH=$PATH:$HOME/bin\nexport PATH\n```\n\nThe `if` compound command reads ~/.bashrc if it exists. `PATH=$PATH:$HOME/bin` uses **parameter expansion**, appending to a variable's contents (as in `foo=$foo\"text.\"`), so a `bin` directory in our home is searched for our own private programs. `export PATH` then makes the contents of PATH available to child processes of this shell. Ubuntu even adds `~/bin` to PATH automatically when the directory exists.\n\n## Modifying the Environment\n\nAs a general rule, place PATH additions and new environment variables in `.bash_profile` (or your distribution's equivalent); everything else goes in `.bashrc`. Practice \"safe computing\" — back up before editing with `cp .bashrc .bashrc.bak`. Startup files are edited with a **text editor** — graphical (gedit, kate) or text-based (nano, vi, emacs). The chapter appends the following to `.bashrc` in nano (`ctrl-O` saves, `ctrl-X` exits):\n\n```bash\numask 0002\nexport HISTCONTROL=ignoredups\nexport HISTSIZE=1000\nalias l.='ls -d .* --color=auto'\nalias ll='ls -l --color=auto'\n```\n\nThese ease the shared-directory umask problem of Chapter 9, ignore history duplicates, grow the history to 1,000 lines, and create the `l.` and `ll` commands. Add `#` comments to document your changes — you won't remember them in six months. `.bashrc` is read only at the start of a session, so force bash to reread it:\n\n```bash\n[me@linuxbox ~]$ source ~/.bashrc\n```\n\nThis course's guest terminal runs BusyBox `ash`, not bash; `export`, `env`, `alias` and `.bashrc` edits still work.\n\n## Summary\n\n- Editing configuration files with a text editor is an essential skill.\n- `printenv`, `set` and `alias` reveal what the environment stores.\n- Login shells read `/etc/profile` and `~/.bash_profile` (or `~/.profile`); non-login shells read `~/.bashrc`.\n- Parameter expansion extends `PATH`; `export` hands variables to child processes.\n- Back up files before editing, comment your changes, and activate with `source ~/.bashrc`.\n- As we read man pages, note the environment variables commands support — there may be a gem or two.\n",
+      "exercises": [
+        {
+          "title": "Snapshot the Environment",
+          "slug": "tlcl-ch11-env-snapshot",
+          "order": 1,
+          "points": 10,
+          "instructions": "In the guest terminal (BusyBox `ash`, logged in as root; the book's bash commands below all work here) dump the whole environment into a file in your home directory, just as the chapter pipes `printenv` into a pager:\n\n```bash\nenv > /root/env-snapshot.txt\ncat /root/env-snapshot.txt\n```\n\nCheck that the snapshot contains the `PATH` variable.",
+          "hint": "The env builtin lists all exported environment variables one per line, and > writes the output to a file.",
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/env-snapshot.txt",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Run `env > /root/env-snapshot.txt` in the terminal"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/env-snapshot.txt",
+              "expected_value": "PATH",
+              "points_weight": 5,
+              "feedback_on_failure": "Regenerate the snapshot with `env > /root/env-snapshot.txt`; the environment always contains PATH"
+            }
+          ]
+        },
+        {
+          "title": "Persist an Environment Variable in .bashrc",
+          "slug": "tlcl-ch11-export-editor",
+          "order": 2,
+          "points": 10,
+          "instructions": "Following the chapter's safe-computing practice, make sure the startup file exists (back it up first with `cp /root/.bashrc /root/.bashrc.bak` if it already has content), append an exported variable and one alias, then activate the changes in the current session. The book uses `source`; BusyBox ash accepts the dot command shown here.\n\n```bash\n[ -f /root/.bashrc ] || touch /root/.bashrc\necho 'export EDITOR=vi' >> /root/.bashrc\necho 'alias ll=\"ls -l\"' >> /root/.bashrc\nexport EDITOR=vi\n. /root/.bashrc\n```",
+          "hint": "Use >> (append), never >, so you do not overwrite the startup file, and check your work with `cat /root/.bashrc`.",
+          "verification_rules": [
+            {
+              "rule_type": "file_contains",
+              "target": "/root/.bashrc",
+              "expected_value": "export EDITOR=vi",
+              "points_weight": 5,
+              "feedback_on_failure": "Run `echo 'export EDITOR=vi' >> /root/.bashrc`"
+            },
+            {
+              "rule_type": "env_var_equals",
+              "target": "EDITOR",
+              "expected_value": "vi",
+              "points_weight": 5,
+              "feedback_on_failure": "Run `export EDITOR=vi` in the terminal"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Chapter 12: A Gentle Introduction to vi",
+      "slug": "tlcl-ch12-gentle-introduction-to-vi",
+      "order": 12,
+      "is_published": true,
+      "description": "Understand vi's modal editing, cursor movement, insertion, deletion and changing text, yank/paste, the ex commands :w, :q, :wq, :q!, and search-and-replace. After this lesson you can create and modify a text file the way the chapter's vi walkthrough does.",
+      "content": "# Chapter 12: A Gentle Introduction to vi\n\n**vi** (pronounced \"vee eye\") is one of the core programs in the Unix tradition, notorious for its difficult user interface. This chapter gets us to the equivalent of \"Chopsticks\" in vi: the editing modes, moving, inserting, deleting, cutting and pasting, searching, replacing, and multiple files.\n\n## Why We Should Learn vi\n\n- vi is almost always available — POSIX requires it — a lifesaver on a system with no graphical interface.\n- vi is lightweight, fast, and designed for typing speed: a skilled user never lifts their fingers from the keyboard.\n- We don't want other Linux and Unix users to think we are cowards.\n\nBill Joy wrote the first vi in 1976; the name means \"visual\" — editing with a moving cursor, unlike the earlier **line editors**. vi incorporates a line editor called **ex**, whose commands we can use. Most distributions ship **vim** (\"vi improved\"), by Bram Moolenaar, linked or aliased to `vi`.\n\n## Starting and Stopping vi\n\nStart with `vi`, or pass a nonexistent filename to create a new file:\n\n```bash\n[me@linuxbox ~]$ vi foo.txt\n```\n\nExit with the ex command `:q` (the colon is part of the command); if it refuses because of unsaved changes, show you really mean it with `:q!`. If you get \"lost\" in vi, press the `esc` key twice. If vim reports \"Running in Vi compatible mode,\" add a line to your vim configuration file:\n\n```bash\necho \"set nocp\" >> ~/.vimrc\n```\n\n## Editing Modes\n\nThe second most important thing to learn is that vi is a **modal editor**. It starts in **command mode**, where almost every key is a command — typing text directly makes a big mess. Press `i` to enter **insert mode** (`-- INSERT --` appears at the bottom) and type the book's example line:\n\n```\nThe quick brown fox jumped over the lazy dog.\n```\n\nPress `esc`, then `:` and `w` to write the file; vi confirms with `\"foo.txt\" [New] 1L, 46C written`.\n\n## Moving the Cursor\n\n| Key | Moves the cursor |\n| --- | --- |\n| h / l (or arrows) | Left / right one character |\n| j / k (or arrows) | Down / up one line |\n| 0 / ^ / $ | Line start / first non-blank / line end |\n| w / b | Next / previous word or punctuation (W / B ignores punctuation) |\n| ctrl-F / ctrl-B | Down / up one page |\n| numberG / G | To line number / to the last line |\n\nh, j, k, l were chosen because early terminals had no arrow keys. Many commands take a numeric prefix: `5j` moves down five lines.\n\n## Inserting and Deleting Text\n\n- `a` appends after the cursor; `A` moves to the line end first.\n- `o` opens a blank line below in insert mode; `O` opens one above.\n- `x` deletes the character; `3x` deletes three.\n- `d` plus a movement command deletes that span: `dd` the current line, `5dd` five lines, `d$` to the line end, `dG` to the end of the file.\n- `u` undoes the last change (real vi has one undo level; vim has many).\n\n`d` also \"cuts\": deletions go into a paste buffer (think clipboard) recalled with `p` (paste after the cursor) or `P` (before). `y` \"yanks\" (copies) using all the movement commands `d` does: `yy` copies the current line.\n\n## Searching and Search-and-Replace\n\n- `fa` moves to the next `a` within the current line; repeat with `;`.\n- `/Line` jumps to the next occurrence in the file, as in `less`; `n` repeats. Regular expressions are allowed.\n- Global search-and-replace is an ex **substitution**:\n\n```\n:%s/Line/line/g\n```\n\n| Item | Meaning |\n| --- | --- |\n| : | Starts an ex command |\n| % | Line range, first to last (omitted = current line) |\n| s | The operation: substitution |\n| /Line/line/ | Search pattern and replacement text |\n| g | Every instance on the line; omitted, only the first per line |\n\nAdding `c` requires confirmation — `:%s/line/Line/gc` asks `replace with Line (y/n/a/q/l/^E/^Y)?`: y substitutes, n skips, a does the rest, q or esc quits, l (\"last\") substitutes and quits.\n\n## Editing Multiple Files\n\n```bash\n[me@linuxbox ~]$ ls -l /usr/bin > ls-output.txt\n[me@linuxbox ~]$ vi foo.txt ls-output.txt\n```\n\n- `:bn` and `:bp` switch to the next / previous file; vi refuses if there are unsaved changes — add `!` to force it.\n- `:buffers` lists open files, `:buffer 2` jumps to buffer 2, `:e file` adds one.\n- Copy between files: `yy` a line in one buffer, `:buffer 2`, then `p`.\n- `:r foo.txt` (\"read\") inserts an entire file below the cursor position.\n\n## Saving Our Work\n\n`:w` writes; `:wq` (or `ZZ` in command mode) saves and exits; `:q!` abandons changes. `:w foo1.txt` acts like Save As — though you are still editing `foo.txt`.\n\n## Summary\n\n- vi is a modal editor: `i` inserts, `esc` returns to command mode, `:w` writes, `:q`/`:q!` quit, `:wq` or `ZZ` saves and exits.\n- Movement keys (h j k l, w, b, $, G) with numeric prefixes keep the fingers on the keyboard.\n- `d` cuts, `y` yanks, `p`/`P` paste, `o`/`O` open lines, `u` undoes.\n- `/` searches; `:%s/old/new/g` replaces globally, `c` confirms each change.\n- Multiple files: `:bn`, `:bp`, `:buffers`, `:e`, `:r`; vi-style design (even in `less`) rewards practice.\n",
+      "exercises": [
+        {
+          "title": "Create and Save foo.txt the vi Way",
+          "slug": "tlcl-ch12-create-foo-file",
+          "order": 1,
+          "points": 10,
+          "instructions": "On a real Linux system you would run `vi foo.txt`, press `i`, type the sentence, press `esc`, and save with `:w`. The guest terminal's `vi` is interactive, so for this check either do the full vi walkthrough on your own machine or create the same file in this guest non-interactively with a `cat` heredoc:\n\n```bash\ncat > /root/foo.txt <<'EOF'\nThe quick brown fox jumped over the lazy dog.\nEOF\n```\n\nThen inspect the result with `cat /root/foo.txt`.",
+          "hint": "The quoted heredoc marker <<'EOF' writes the text literally, exactly like typing it into vi and saving with :w.",
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/foo.txt",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Run `echo 'The quick brown fox jumped over the lazy dog.' > /root/foo.txt`"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/foo.txt",
+              "expected_value": "The quick brown fox",
+              "points_weight": 5,
+              "feedback_on_failure": "Write the book's sentence in with `echo 'The quick brown fox jumped over the lazy dog.' > /root/foo.txt`"
+            }
+          ]
+        },
+        {
+          "title": "Set Up .vimrc and Practice the Global Replace",
+          "slug": "tlcl-ch12-vimrc-substitution",
+          "order": 2,
+          "points": 10,
+          "instructions": "First apply the chapter's compatibility-mode fix to your own vim configuration file. Then reproduce the global search-and-replace `:%s/Line/line/g` on a small file. Since `vi` itself is interactive in this guest, build the file with `printf` (or create it with `vi` on your own machine) and apply the same substitution with `sed`, which uses the same s/// syntax:\n\n```bash\necho \"set nocp\" >> /root/.vimrc\nprintf '%s\n' \"Line 2\" \"Line 3\" \"Line 4\" > /root/lines.txt\nsed -i 's/Line/line/g' /root/lines.txt\n```\n\nCheck with `cat /root/lines.txt` — every \"Line\" should now be lowercase.",
+          "hint": "The chapter's % range means \"every line\" and g means \"every instance on the line\" — sed -i 's/Line/line/g' applies exactly that change to the whole file.",
+          "verification_rules": [
+            {
+              "rule_type": "file_contains",
+              "target": "/root/.vimrc",
+              "expected_value": "set nocp",
+              "points_weight": 4,
+              "feedback_on_failure": "Run `echo \"set nocp\" >> /root/.vimrc`"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/lines.txt",
+              "expected_value": "line 2",
+              "points_weight": 3,
+              "feedback_on_failure": "Rebuild the file with `printf '%s\n' \"Line 2\" \"Line 3\" \"Line 4\" > /root/lines.txt` and then run `sed -i 's/Line/line/g' /root/lines.txt`"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/lines.txt",
+              "expected_value": "line 4",
+              "points_weight": 3,
+              "feedback_on_failure": "Rebuild the file with `printf '%s\n' \"Line 2\" \"Line 3\" \"Line 4\" > /root/lines.txt` and then run `sed -i 's/Line/line/g' /root/lines.txt`"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Chapter 13: Customizing the Prompt",
+      "slug": "tlcl-ch13-customizing-the-prompt",
+      "order": 13,
+      "is_published": true,
+      "description": "Control PS1 with backslash escape sequences, ANSI colour codes and cursor movement, and make prompt customisations permanent in .bashrc. After this lesson you can back up the current prompt and persist a timestamped prompt plus an alias.",
+      "content": "# Chapter 13: Customizing the Prompt\n\nThis chapter looks at a seemingly trivial detail — our shell prompt — revealing inner workings of the shell and terminal emulator. Our default prompt looks like this:\n\n```\n[me@linuxbox ~]$\n```\n\nIt contains our username, hostname and current working directory — a really useful device once we learn to control it.\n\n## Anatomy of a Prompt: PS1\n\nThe prompt is defined by an environment variable named **PS1** (short for \"prompt string 1\"):\n\n```bash\n[me@linuxbox ~]$ echo $PS1\n[\\u@\\h \\W]\\$\n```\n\nBesides the brackets, at-sign and dollar sign, PS1 holds backslash-escaped special characters that bash treats specially in the prompt string. Don't worry if your results differ — every distribution defines the prompt string a little differently.\n\n## Escape Sequences and Special Characters\n\n| Sequence | Value displayed |\n| --- | --- |\n| \\a | ASCII bell — the computer beeps |\n| \\d / \\j / \\l / \\s | Date / job count / terminal device / shell name |\n| \\h / \\H | Hostname minus / including trailing domain |\n| \\t / \\T / \\@ / \\A | Time: 24-hour, 12-hour, am/pm, hh:mm |\n| \\u | Username of the current user |\n| \\v / \\V | Shell version / release |\n| \\w / \\W | Full working directory / its last part |\n| \\! / \\# | History number / commands entered |\n| \\$ | `$`, or `#` if we have superuser privileges |\n| \\[ and \\] | Start and end of non-printing characters |\n\nFirst back up the prompt string: `ps1_old=\"$PS1\"`, then restore it later with `PS1=\"$ps1_old\"`. An empty string gives no prompt at all; a minimal prompt is `PS1=\"\\$ \"` — the trailing space keeps the cursor off the dollar sign. A bell (`PS1=\"\\[\\a\\]\\$ \"`) needs the `\\[...\\]` wrappers: `\\a` does not move the cursor and bash must determine the prompt's true length. Time-of-day tracks when we perform tasks:\n\n```bash\n$ PS1=\"\\A \\h \\$ \"\n17:33 linuxbox $\n$ PS1=\"<\\u@\\h \\W>\\$ \"\n<me@linuxbox ~>$\n```\n\n## Adding Color\n\nTerminal emulators respond to **ANSI escape codes**. A code begins with octal 033 (the esc key), an optional attribute, then an instruction: `\\033[0;30m` is normal (attribute 0) black text.\n\n| Sequence | Text color | Sequence | Text color |\n| --- | --- | --- | --- |\n| \\033[0;30m | Black | \\033[1;30m | Dark gray |\n| \\033[0;31m | Red | \\033[1;31m | Light red |\n| \\033[0;32m | Green | \\033[1;32m | Light green |\n| \\033[0;33m | Brown | \\033[1;33m | Yellow |\n| \\033[0;34m | Blue | \\033[1;34m | Light blue |\n| \\033[0;35m | Purple | \\033[1;35m | Light purple |\n| \\033[0;36m | Cyan | \\033[1;36m | Light cyan |\n| \\033[0;37m | Light gray | \\033[1;37m | White |\n\nThe bold attribute (1) creates \"light\" colors. Insert the code at the start of the prompt:\n\n```bash\n<me@linuxbox ~>$ PS1=\"\\[\\033[0;31m\\]<\\u@\\h \\W>\\$ \"\n```\n\nNow everything we type is red too, so append a reset code returning to the previous color: `PS1=\"\\[\\033[0;31m\\]<\\u@\\h \\W>\\$\\[\\033[0m\\] \"`. Backgrounds use `\\033[0;40m`-`\\033[0;47m` (black through light gray), no bold; underscore (4), blinking (5) and inverse (7) attributes also exist.\n\n## Moving the Cursor\n\nEscape codes position the cursor: `\\033[l;cH` moves to line l, column c; `\\033[nA`/`\\033[nB` move up/down n lines; `\\033[nC`/`\\033[nD` move forward/back n characters; `\\033[2J` clears the screen; `\\033[K` clears to the line end; `\\033[s`/`\\033[u` store and recall the position. The book draws a red bar with a yellow clock at the top of the screen each time the prompt appears:\n\n```bash\nPS1=\"\\[\\033[s\\033[0;0H\\033[0;41m\\033[K\\033[1;33m\\t\\033[0m\\033[u\\]<\\u@\\h \\W>\\$ \"\n```\n\nIt stores the cursor, jumps to the upper-left corner, paints the red bar with `\\033[K`, prints the time in yellow, resets color, restores the cursor, then draws `<\\u@\\h \\W>$`. Wrapping it in `\\[...\\]` matters: without an accurate size calculation for the visible prompt, command line editing cannot position the cursor correctly.\n\n## Saving the Prompt\n\nTo stop typing that monster, make the prompt permanent by adding these lines to `.bashrc`:\n\n```bash\nPS1=\"\\[\\033[s\\033[0;0H\\033[0;41m\\033[K\\033[1;33m\\t\\033[0m\\033[u\\]<\\u@\\h \\W>\\$ \"\nexport PS1\n```\n\nBeyond the chapter: bash also defines **PS2**, the continuation prompt for incomplete commands, and `\\$?` in PS1 shows the previous command's exit status when the prompt draws. Aliases (Chapter 11) live in this same `.bashrc`. The guest's BusyBox `ash` won't interpret bash's `\\u`-style escapes, but assignment, export and `.bashrc` edits all work.\n\n## Summary\n\n- The prompt's contents come from PS1; view it with `echo $PS1` and back it up with `ps1_old=\"$PS1\"`.\n- Escape sequences (\\u, \\h, \\W, \\t, \\A, \\$) insert username, hostname, directory and time-of-day values.\n- Non-printing characters must be wrapped in `\\[` and `\\]` so bash calculates the prompt's length.\n- ANSI codes `\\033[...m` set text and background colors; `\\033[0m` restores the previous color.\n- Cursor codes (\\033[s, \\033[0;0H, \\033[K, \\033[u) allow extras like a timestamped clock bar.\n- Save a customized prompt by assigning PS1 and exporting it in `.bashrc`.\n",
+      "exercises": [
+        {
+          "title": "Back Up the Current Prompt String",
+          "slug": "tlcl-ch13-backup-ps1",
+          "order": 1,
+          "points": 10,
+          "instructions": "The chapter copies PS1 into another variable before experimenting (`ps1_old=\"$PS1\"`) so the original prompt can be restored at any time. Do the same, then save the current prompt string to a file as a durable backup:\n\n```bash\nps1_old=\"$PS1\"\necho \"$PS1\" > /root/ps1-original.txt\ncat /root/ps1-original.txt\n```\n\nThen restore your working prompt from the backup, as the book does: `PS1=\"$ps1_old\"`.",
+          "hint": "If the saved file is empty, your guest shell simply has no custom prompt string yet — the backup command still succeeded.",
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/ps1-original.txt",
+              "expected_value": "",
+              "points_weight": 10,
+              "feedback_on_failure": "Run `echo \"$PS1\" > /root/ps1-original.txt`"
+            }
+          ]
+        },
+        {
+          "title": "Make a Timestamped Prompt and Alias Permanent",
+          "slug": "tlcl-ch13-permanent-prompt",
+          "order": 2,
+          "points": 10,
+          "instructions": "As the chapter's \"Saving the Prompt\" section does, add a PS1 assignment and an `export PS1` line to your .bashrc, and keep one alias alongside it — the same companion customisation the book stores in .bashrc. Finally re-read the file with the dot command (`source` in the book's bash).\n\n```bash\ntouch /root/.bashrc\necho 'PS1=\"[\\A] # \"' >> /root/.bashrc\necho 'export PS1' >> /root/.bashrc\necho 'alias ll=\"ls -l\"' >> /root/.bashrc\n. /root/.bashrc\n```\n\nNote: the guest's ash shell will not expand the bash escape `\\A`, but the file edits are exactly what the book prescribes and what this check verifies; confirm with `cat /root/.bashrc`.",
+          "hint": "Wrap the echo argument in single quotes so the backslashes and dollar signs are written into .bashrc literally instead of being expanded now.",
+          "verification_rules": [
+            {
+              "rule_type": "file_contains",
+              "target": "/root/.bashrc",
+              "expected_value": "export PS1",
+              "points_weight": 6,
+              "feedback_on_failure": "Run `echo 'export PS1' >> /root/.bashrc`"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/.bashrc",
+              "expected_value": "alias ll=",
+              "points_weight": 4,
+              "feedback_on_failure": "Run `echo 'alias ll=\"ls -l\"' >> /root/.bashrc`"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
