@@ -1,0 +1,441 @@
+{
+  "lessons": [
+    {
+      "title": "Chapter 19: Regular Expressions",
+      "slug": "tlcl-ch19-regular-expressions",
+      "order": 19,
+      "is_published": true,
+      "description": "Read and write POSIX regular expressions: match any character, anchor a match, use bracket expressions, POSIX character classes and the extended repetition operators, and apply them with grep, find and locate.",
+      "content": "# Chapter 19: Regular Expressions\n\nRegular expressions are symbolic notations used to identify patterns in text. In some ways they resemble the shell's wildcard method of matching file and pathnames, but on a much grander scale, and they are supported by many command line tools. This chapter covers regular expressions as described in the POSIX standard, which covers most command line tools, rather than the larger and richer notations used by languages such as Perl.\n\n## grep\n\nThe main program we will use is `grep`, a name derived from \"global regular expression print\". In essence, `grep` searches text files for text matching a specified regular expression and outputs any line containing a match to standard output.\n\n```bash\ngrep [options] regex [file...]\n[me@linuxbox ~]$ ls /bin > dirlist-bin.txt\n[me@linuxbox ~]$ ls /usr/bin > dirlist-usr-bin.txt\n[me@linuxbox ~]$ ls /sbin > dirlist-sbin.txt\n[me@linuxbox ~]$ grep bzip dirlist*.txt\ndirlist-bin.txt:bzip2\ndirlist-bin.txt:bzip2recover\n[me@linuxbox ~]$ grep -l bzip dirlist*.txt\ndirlist-bin.txt\n[me@linuxbox ~]$ grep -L bzip dirlist*.txt\ndirlist-sbin.txt\ndirlist-usr-bin.txt\n```\n\n| Option | Long option | Description |\n| --- | --- | --- |\n| `-i` | `--ignore-case` | Ignore case; do not distinguish uppercase from lowercase. |\n| `-v` | `--invert-match` | Print every line that does **not** contain a match. |\n| `-c` | `--count` | Print the number of matches instead of the lines. |\n| `-l` | `--files-with-matches` | Print the name of each file that contains a match. |\n| `-L` | `--files-without-match` | Print only the names of files that lack matches. |\n| `-n` | `--line-number` | Prefix each matching line with its line number. |\n| `-h` | `--no-filename` | Suppress filenames in multifile searches. |\n\n## Metacharacters and Literals\n\nThe search string `bzip` is already a regular expression: it matches only if the characters b, z, i and p appear in that order with nothing in between. Characters that match themselves are **literals**; more complex matches use **metacharacters**:\n\n`^ $ . [ ] { } - ? * + ( ) | \\`\n\n| Metacharacter | Meaning | Example from the chapter |\n| --- | --- | --- |\n| `.` | Matches any single character | `grep -h '.zip' dirlist*.txt` |\n| `^` | Anchor: beginning of the line | `grep -h '^zip' dirlist*.txt` |\n| `$` | Anchor: end of the line | `grep -h 'zip$' dirlist*.txt` |\n| `[ ]` | Bracket expression: a set of characters | `grep -h '[bg]zip' dirlist*.txt` |\n| `-` | Range inside a bracket expression | `'^[A-Za-z0-9]'` |\n| `( )` | Group a subexpression | `'^(bz|gz|zip)'` |\n| `|` | Alternation between strings | `'AAA\\|BBB\\|CCC'` |\n| `?` | Preceding element zero or one time | `^\\(?[0-9]{3}\\)?` |\n| `*` | Preceding element zero or more times | `[[:upper:][:lower:] ]*` |\n| `+` | Preceding element one or more times | `^([[:alpha:]]+ ?)+$` |\n| `{ }` | Preceding element a specific number of times | `[0-9]{3}-[0-9]{4}$` |\n| `\\` | Escape a metacharacter, or introduce one in BRE | `\\(`, `\\{3\\}` |\n\n> **Note:** Many metacharacters also have meaning to the shell when expansion is performed. When we pass regular expressions containing metacharacters on the command line, it is vital that they be enclosed in quotes to prevent the shell from attempting to expand them.\n\n## The Any Character, and Anchors\n\nThe dot matches any character in that position. `grep -h '.zip' dirlist*.txt` lists `bunzip2`, `gzip`, `unzip` — but not `zip`, because the dot makes the match four characters long.\n\nThe caret and dollar sign are **anchors**, matching only at the beginning or the end of the line:\n\n```bash\n[me@linuxbox ~]$ grep -h '^zip' dirlist*.txt\nzip\nzipcloak\nzipgrep\n[me@linuxbox ~]$ grep -h 'zip$' dirlist*.txt\ngunzip\ngzip\nunzip\n[me@linuxbox ~]$ grep -h '^zip$' dirlist*.txt\nzip\n```\n\nThe expression `^$`, a beginning and an end with nothing between, matches blank lines. Even this little is useful: `grep -i '^..j.r$' /usr/share/dict/words` answers a crossword clue from the dictionary file on the system.\n\n## Bracket Expressions and Character Classes\n\nA **bracket expression** matches a single character drawn from a set; metacharacters lose their meaning inside brackets, except a leading caret and the dash.\n\n```bash\n[me@linuxbox ~]$ grep -h '[bg]zip' dirlist*.txt\nbzip2\nbzip2recover\ngzip\n[me@linuxbox ~]$ grep -h '[^bg]zip' dirlist*.txt\nbunzip2\ngunzip\nfunzip\nunzip\n[me@linuxbox ~]$ grep -h '^[A-Z]' dirlist*.txt\nMAKEDEV\nControlPanel\nXorg\n```\n\nWith negation the character must be present but must not be a member of the set, which is why `zip` itself disappears. A caret only negates when it is the first character in the brackets. Ranges abbreviate long sets, and multiple ranges may be combined; to include a literal dash, make it first: `'[-AZ]'`.\n\n## POSIX Character Classes\n\nTraditional ranges can mislead, because a POSIX **locale** changes the collation order. `echo $LANG` may report `en_US.UTF-8`, and in dictionary order the range `[A-Z]` covers every alphabetic character except lowercase a, so `ls /usr/sbin/[A-Z]*` returns far more than intended. The standard supplies character classes instead:\n\n| Character class | Description |\n| --- | --- |\n| `[:alnum:]` | Alphanumeric; in ASCII `[A-Za-z0-9]` |\n| `[:word:]` | The same as `[:alnum:]`, plus the underscore |\n| `[:alpha:]` | Alphabetic; in ASCII `[A-Za-z]` |\n| `[:blank:]` | Space and tab |\n| `[:cntrl:]` | ASCII control codes, 0 through 31 and 127 |\n| `[:digit:]` | The numerals 0 through 9 |\n| `[:graph:]` | Visible characters, 33 through 126 in ASCII |\n| `[:lower:]` | Lowercase letters |\n| `[:upper:]` | Uppercase letters |\n| `[:punct:]` | Punctuation characters |\n| `[:print:]` | Printable characters: `[:graph:]` plus space |\n| `[:space:]` | Space, tab, carriage return, newline, vertical tab, form feed |\n| `[:xdigit:]` | Hexadecimal digits, `[0-9A-Fa-f]` |\n\n`ls /usr/sbin/[[:upper:]]*` gives the expected result, though that is the shell performing pathname expansion — POSIX classes serve both purposes. Setting `export LANG=POSIX` in `.bashrc` returns the system to traditional ASCII collation order.\n\n## Basic vs. Extended Regular Expressions\n\nPOSIX splits implementations in two. **Basic** regular expressions (BRE) recognize only `^ $ . [ ] *`; **extended** ones (ERE) add `( ) { } ? + |`. The characters `(`, `)`, `{` and `}` are metacharacters in BRE only when escaped with a backslash, while in ERE a backslash turns a metacharacter into a literal. The features below are ERE, so we use `grep -E` (traditionally, the `egrep` program).\n\n**Alternation** allows a match from among a set of strings, much as a bracket expression allows one character from a set:\n\n```bash\n[me@linuxbox ~]$ echo \"AAA\" | grep -E 'AAA|BBB'\nAAA\n[me@linuxbox ~]$ grep -Eh '^(bz|gz|zip)' dirlist*.txt\n[me@linuxbox ~]$ grep -Eh '^bz|gz|zip' dirlist*.txt\n```\n\nThe parentheses bind the alternation to the anchor; without them the second line means \"begins with bz, or contains gz, or contains zip\".\n\n**Quantifiers** specify how many times an element must match.\n\n| Specifier | Meaning |\n| --- | --- |\n| `{n}` | Match the preceding element if it occurs exactly n times. |\n| `{n,m}` | At least n times but no more than m times. |\n| `{n,}` | n or more times. |\n| `{,m}` | No more than m times. |\n\n`?` makes an element optional, so both phone forms are matched by `^\\(?[0-9]{3}\\)? [0-9]{3}-[0-9]{4}$`. `*` allows any number of repetitions — the crude sentence test `[[:upper:]][[:upper:][:lower:] ]*\\.` matches \"This works.\" but not \"this does not\". `+` demands at least one: `^([[:alpha:]]+ ?)+$` matches \"This that\" and rejects \"a b 9\" and \"abc d\".\n\n## Putting Regular Expressions to Work\n\n```bash\n[me@linuxbox ~]$ grep -Ev '^\\([0-9]{3}\\) [0-9]{3}-[0-9]{4}$' phonelist.txt\n(292) 108-518\n(129) 44-1379\n[me@linuxbox ~]$ find . -regex '.*[^-_./0-9a-zA-Z].*'\n[me@linuxbox ~]$ locate --regex 'bin/(bz|gz|zip)'\n```\n\nThe `-v` option turns the expression inside out and reports only the malformed numbers, with anchors at both ends so nothing extra can hide. Unlike `grep`, which matches a line **containing** a match, `find` requires the pathname to match the expression exactly, hence the `.*` at both ends. `locate` supports basic (`--regexp`) and extended (`--regex`) expressions. `less` and `vim` both search with `/` followed by an expression; `vim` uses BRE, so the same search is `/([0-9]\\{3\\}) [0-9]\\{3\\}-[0-9]\\{4\\}` and highlighting is turned on with `:hlsearch`.\n\n## Summary\n\n- Regular expressions are symbolic notations for identifying patterns in text, used by many command line tools and programming languages.\n- `.` matches any single character; `^` and `$` anchor a match to the beginning or the end of a line.\n- Bracket expressions match a set of characters, negate with a leading `^` and express ranges with `-`; POSIX character classes such as `[[:upper:]]` avoid the surprises of locale collation order.\n- BRE recognizes `^ $ . [ ] *`; ERE adds `( ) { } ? + |`, and backslashes behave in opposite ways in the two.\n- Alternation and the quantifiers `?`, `*`, `+`, `{n,m}` say which of several strings match and how often.\n- The same expressions drive `grep -E`, `find -regex`, `locate --regex`, and the searches of `less` and `vim`.\n- `zgrep -El 'regex|regular expression' *.gz` in the man directory lists the many programs that accept regular expressions; **back references**, a BRE feature, are taken up in the next chapter.",
+      "exercises": [
+        {
+          "title": "Matching Sets, Ranges and Anchors",
+          "slug": "tlcl-ch19-sets-ranges-anchors",
+          "order": 1,
+          "instructions": "Create a list of names to search, then use the anchors and bracket expressions from this chapter to split it into separate result files.\n\n```bash\nprintf '%s\\n' zip unzip gzip bzip2 zipgrep MAKEDEV ControlPanel Xorg azip > /root/dirlist.txt\ngrep -h '^zip' /root/dirlist.txt > /root/starts-with-zip.txt\ngrep -h 'zip$' /root/dirlist.txt > /root/ends-with-zip.txt\ngrep -h '[bg]zip' /root/dirlist.txt > /root/set-zip.txt\ngrep -h '^[A-Z]' /root/dirlist.txt > /root/uppercase-start.txt\n```\n\n`starts-with-zip.txt` holds the lines anchored at the beginning of the line, `ends-with-zip.txt` those anchored at the end, `set-zip.txt` those where zip is preceded by b or g, and `uppercase-start.txt` those starting with an uppercase letter.",
+          "hint": "The caret anchors to the start of a line and the dollar sign to the end; inside brackets a set such as [bg] matches one character from the set.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/dirlist.txt",
+              "expected_value": "",
+              "points_weight": 2,
+              "feedback_on_failure": "Create the source list with `printf '%s\\n' zip unzip gzip bzip2 zipgrep MAKEDEV ControlPanel Xorg azip > /root/dirlist.txt`"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/starts-with-zip.txt",
+              "expected_value": "zipgrep",
+              "points_weight": 2,
+              "feedback_on_failure": "Run `grep -h '^zip' /root/dirlist.txt > /root/starts-with-zip.txt`"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/ends-with-zip.txt",
+              "expected_value": "unzip",
+              "points_weight": 2,
+              "feedback_on_failure": "Run `grep -h 'zip$' /root/dirlist.txt > /root/ends-with-zip.txt`"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/set-zip.txt",
+              "expected_value": "bzip2",
+              "points_weight": 2,
+              "feedback_on_failure": "Run `grep -h '[bg]zip' /root/dirlist.txt > /root/set-zip.txt`"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/uppercase-start.txt",
+              "expected_value": "MAKEDEV",
+              "points_weight": 2,
+              "feedback_on_failure": "Run `grep -h '^[A-Z]' /root/dirlist.txt > /root/uppercase-start.txt`"
+            }
+          ]
+        },
+        {
+          "title": "Validating a Phone List",
+          "slug": "tlcl-ch19-validating-a-phone-list",
+          "order": 2,
+          "instructions": "Build a phone list containing both well-formed and malformed numbers, then use an inverted match with anchors to list only the bad ones.\n\n```bash\nprintf '%s\\n' \"(555) 123-4567\" \"555 123-4567\" \"(292) 108-518\" \"(129) 44-1379\" \"(804) 555-1234\" > /root/phonelist.txt\ngrep -v '^\\([0-9][0-9][0-9]\\) [0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]$' /root/phonelist.txt > /root/invalid-phones.txt\n```\n\nThe expression requires three digits inside parentheses, a space, three digits, a dash and four digits, anchored at both ends so nothing extra can hide at either side. Write the non-matching lines to `/root/invalid-phones.txt`. The book writes the same test compactly as `'^\\([0-9]\\{3\\}\\) [0-9]\\{3\\}-[0-9]\\{4\\}$'`.",
+          "hint": "`grep -v` prints the lines that do NOT match, so the malformed numbers are the ones that land in the output file.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/phonelist.txt",
+              "expected_value": "",
+              "points_weight": 3,
+              "feedback_on_failure": "Create the list with `printf '%s\\n' \"(555) 123-4567\" \"555 123-4567\" \"(292) 108-518\" \"(129) 44-1379\" \"(804) 555-1234\" > /root/phonelist.txt`"
+            },
+            {
+              "rule_type": "file_exists",
+              "target": "/root/invalid-phones.txt",
+              "expected_value": "",
+              "points_weight": 3,
+              "feedback_on_failure": "Redirect the inverted match into /root/invalid-phones.txt with `grep -v ... /root/phonelist.txt > /root/invalid-phones.txt`"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/invalid-phones.txt",
+              "expected_value": "108-518",
+              "points_weight": 4,
+              "feedback_on_failure": "Re-run `grep -v '^\\([0-9][0-9][0-9]\\) [0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]$' /root/phonelist.txt > /root/invalid-phones.txt` and check it with `cat /root/invalid-phones.txt`"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Chapter 20: Text Processing",
+      "slug": "tlcl-ch20-text-processing",
+      "order": 20,
+      "is_published": true,
+      "description": "Slice and dice text with sort, uniq, cut, paste, join, tr and diff, and edit a stream non-interactively with sed addresses, substitutions, back references and script files.",
+      "content": "# Chapter 20: Text Processing\n\nAll Unix-like operating systems rely heavily on text files for data storage, so there are many tools for manipulating text. This chapter looks at the programs used to \"slice and dice\" text: `cat`, `sort`, `uniq`, `cut`, `paste`, `join`, `comm`, `diff`, `patch`, `tr`, `sed` and `aspell`. Text is where documents, web pages, email, printer output and — most importantly for developers — program source code all begin.\n\n## Revisiting Some Old Friends\n\nThese programs accept standard input as well as command line arguments, so they work as filters in pipelines.\n\n### cat\n\nThe `-A` option displays non-printing characters, which is how we find tabs, trailing spaces and the carriage returns that MS-DOS files carry (Unix ends a line with a linefeed, ASCII 10; DOS with carriage return 13 plus linefeed).\n\n```bash\n[me@linuxbox ~]$ cat -A foo.txt\n^IThe quick brown fox jumped over the lazy dog.     $\n[me@linuxbox ~]$ cat -ns foo.txt\n     1      The quick brown fox\n     2\n     3      jumped over the lazy dog.\n```\n\n`^I` is ctrl-I, a tab; the `$` marks the true end of the line, exposing trailing spaces. `-n` numbers lines and `-s` suppresses multiple blank lines.\n\n### sort\n\n`sort` sorts standard input or files and writes the result to standard output, so `sort file1.txt file2.txt file3.txt > final_sorted_list.txt` merges several files into one sorted whole.\n\n| Option | Long option | Description |\n| --- | --- | --- |\n| `-b` | `--ignore-leading-blanks` | Sort from the first non-whitespace character. |\n| `-f` | `--ignore-case` | Case-insensitive sorting. |\n| `-n` | `--numeric-sort` | Sort on the numeric value of a string, not alphabetically. |\n| `-r` | `--reverse` | Descending rather than ascending order. |\n| `-k` | `--key=field1[,field2]` | Sort on a key field rather than the whole line. |\n| `-m` | `--merge` | Treat each argument as a presorted file; merge without resorting. |\n| `-o` | `--output=file` | Write sorted output to a file. |\n| `-t` | `--field-separator=char` | Define the field separator character. |\n\n```bash\n[me@linuxbox ~]$ du -s /usr/share/* | sort -nr | head\n[me@linuxbox ~]$ ls -l /usr/bin | sort -nrk 5 | head\n```\n\nIn tabular output each row is a **record** of **fields**, and `-k 5` makes the fifth field the sort key. Whitespace delimits fields by default and the delimiters belong to the field. Keys may be ranged and typed: the book's distribution list needs `sort -k 1,1 -k 2n distros.txt` (GNU `sort` also spells this `--key=1,1 --key=2n`) because plain sorting puts Fedora 10 before Fedora 5. This practice guest runs BusyBox `sort`, which accepts only the short forms, so prefer `-k`, `-t` and `-u` over `--key=`, `--field-separator=` and `--complement` here. Offsets inside a field sort the awkward MM/DD/YYYY dates chronologically: `sort -k 3.7nbr -k 3.1nbr -k 3.4nbr distros.txt`. For files that use another delimiter, `sort -t ':' -k 7 /etc/passwd` sorts on the login shell.\n\n### uniq\n\n`uniq` removes duplicate lines, but only **adjacent** ones, so the input must be sorted first.\n\n```bash\n[me@linuxbox ~]$ sort foo.txt | uniq\na\nb\nc\n[me@linuxbox ~]$ sort foo.txt | uniq -c\n      2 a\n      2 b\n      2 c\n```\n\n`-d` outputs only repeated lines, `-u` only unique ones, `-i` ignores case, `-f n` skips n leading fields and `-s n` skips n leading characters. GNU `sort` also has `-u`, which drops duplicates as it sorts.\n\n## Slicing and Dicing\n\n`cut` extracts a section of each line: `-c list` takes characters by position, `-f list` takes fields, `-d delim` sets the field delimiter for `-f` (fields are otherwise separated by a single tab), and `--complement` takes everything except the selection.\n\n```bash\n[me@linuxbox ~]$ cut -f 3 distros.txt\n12/07/2006\n11/25/2008\n[me@linuxbox ~]$ cut -f 3 distros.txt | cut -c 7-10\n2006\n2008\n[me@linuxbox ~]$ cut -d ':' -f 1 /etc/passwd | head\nroot\ndaemon\n```\n\n`cut` is best used on files produced by other programs. Tab-delimited files have lines of unequal length, so extract fields; Coreutils' `expand` turns tabs into spaces when character positions are wanted (`expand distros.txt | cut -c 23-`), and `unexpand` does the reverse.\n\n`paste` is the opposite of `cut`: it adds columns by reading several files and combining their lines into one stream.\n\n```bash\n[me@linuxbox ~]$ sort -k 3.7nbr -k 3.1nbr -k 3.4nbr distros.txt > distros-by-date.txt\n[me@linuxbox ~]$ cut -f 1,2 distros-by-date.txt > distros-versions.txt\n[me@linuxbox ~]$ cut -f 3 distros-by-date.txt > distros-dates.txt\n[me@linuxbox ~]$ paste distros-dates.txt distros-versions.txt\n11/25/2008    Fedora      10\n10/30/2008    Ubuntu      8.10\n```\n\n`join` adds columns too, but the way a relational database does it: it merges files on a shared **key field**. Two files keyed on the release date combine with `join distros-key-names.txt distros-key-vernums.txt`, and the files **must be sorted on the key field** for it to work. By default `join` reads whitespace-separated fields and writes single spaces between them.\n\n## Comparing Text\n\n`comm` compares two sorted files and prints three columns: lines unique to the first file, lines unique to the second, and lines shared by both; `-1`, `-2`, `-3` suppress a column, so `comm -12 file1.txt file2.txt` prints only the shared lines.\n\n`diff` is the far more complex tool, with many output formats and the ability to examine whole source trees recursively. Its default output is a change command plus the lines involved:\n\n```bash\n[me@linuxbox ~]$ diff file1.txt file2.txt\n1d0\n< a\n4a4\n> e\n```\n\nA change command has the form `range operation range` — `a` appends, `c` changes, `d` deletes. The context format (`-c`) and the unified format (`-u`) are the popular ones; both show file timestamps, line ranges such as `@@ -1,4 +1,4 @@` and per-line indicators: blank for context, `-` deleted, `+` added, and `!` changed in the context format only. The unified format is shorter because it does not duplicate the context lines.\n\n`patch` applies the output of `diff` to turn an older file into a newer one. Kernel contributors send diffs rather than whole source trees because a diff file is small and shows the change concisely. The GNU documentation suggests `diff -Naur old_file new_file > diff_file` and then `patch < diff_file`; no target file is needed because the unified header already names it.\n\n## Editing on the Fly\n\n### tr — Transliterate or Delete Characters\n\n`tr` reads standard input and writes standard output, taking a set to convert from and a set to convert to. Sets may be enumerated (`ABCDEFGHIJKLMNOPQRSTUVWXYZ`), a range (`A-Z`, subject to locale collation order, so use with caution) or a POSIX class (`[:upper:]`).\n\n```bash\n[me@linuxbox ~]$ echo \"lowercase letters\" | tr a-z A-Z\nLOWERCASE LETTERS\n[me@linuxbox ~]$ echo \"aaabbbccc\" | tr -s ab\nabccc\n```\n\nThe first set may be longer than the second, as in `tr [:lower:] A`. `-d` deletes characters, which converts DOS text: `tr -d '\\r' < dos_file > unix_file`. `-s` \"squeezes\" repeated characters, but only adjoining ones, so `tr -s ab` on `abcabcabc` changes nothing. ROT13 obfuscation is one trick: `echo \"secret text\" | tr a-zA-Z n-za-mN-ZA-M` gives `frperg grkg`, and repeating it restores the original.\n\n### sed — Stream Editor\n\n`sed` performs text editing on a stream, either named files or standard input. It is given one command on the command line, or a script file of many commands, and performs them upon each line.\n\n```bash\n[me@linuxbox ~]$ echo \"front\" | sed 's/front/back/'\nback\n[me@linuxbox ~]$ echo \"front\" | sed 's_front_back_'\nback\n[me@linuxbox ~]$ echo \"front\" | sed '2s/front/back/'\nfront\n[me@linuxbox ~]$ sed -n '1,5p' distros.txt\n[me@linuxbox ~]$ sed -n '/SUSE/p' distros.txt\n[me@linuxbox ~]$ sed -n '/SUSE/!p' distros.txt\n```\n\nCommands begin with a single letter. The delimiter of the `s` command is arbitrary: any character immediately following the command becomes it, which can make commands more readable. Most commands may be preceded by an **address** saying which lines are edited; with no address, every line is edited.\n\n| Address | Description |\n| --- | --- |\n| `n` | A line number, where n is a positive integer. |\n| `$` | The last line. |\n| `/regexp/` | Lines matching a POSIX basic regular expression, delimited by slashes or `\\cregexpc`. |\n| `addr1,addr2` | A range of lines, inclusive. |\n| `first~step` | Line first and every step lines after it; `1~2` is each odd line. |\n| `addr1,+n` | addr1 and the following n lines. |\n| `addr!` | All lines except addr. |\n\n| Command | Description |\n| --- | --- |\n| `=` | Output the current line number. |\n| `a` | Append text after the current line. |\n| `d` | Delete the current line. |\n| `i` | Insert text in front of the current line. |\n| `p` | Print the current line. |\n| `q` | Exit `sed` without processing any more lines. |\n| `s/regexp/replacement/` | Substitute replacement wherever regexp is found. |\n| `y/set1/set2` | Transliterate set1 into set2; both sets must be the same length. |\n\nThe `p` command is only useful with `-n`, the \"no auto-print\" option, and a regular-expression address isolates lines \"in much the same manner as `grep`\".\n\n### Substitution and Back References\n\nIn `replacement`, `&` stands for the text matched by regexp, and `\\1` through `\\9` refer to the corresponding subexpressions — **back references** — created by enclosing them in parentheses. That is the whole trick of the book's date reformatting:\n\n```bash\n[me@linuxbox ~]$ sed 's/\\([0-9]\\{2\\}\\)\\/\\([0-9]\\{2\\}\\)\\/\\([0-9]\\{4\\}\\)$/\\3-\\1-\\2/' distros.txt\nSUSE             10.2      2006-12-07\nFedora           10        2008-11-25\n```\n\nBuilt up in stages: `([0-9]{2})/([0-9]{2})/([0-9]{4})$` isolates the date, `\\3-\\1-\\2` reorders it, and then backslashes are applied liberally because the extra slashes would confuse `sed` and because `sed` accepts only basic regular expressions by default. Optional flags follow the replacement; the most important is `g`, which applies the substitution globally instead of to the first instance only — `echo \"aaabbbccc\" | sed 's/b/B/g'` yields `aaaBBBccc`.\n\n### sed Scripts\n\nComplex work goes into a script file run with `-f`:\n\n```bash\n# sed script to produce Linux distributions report\n\n1 i\\\n\\\nLinux Distributions Report\\\n\ns/\\([0-9]\\{2\\}\\)\\/\\([0-9]\\{2\\}\\)\\/\\([0-9]\\{4\\}\\)$/\\3-\\1-\\2/\ny/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/\n```\n\nSaved as `distros.sed` and run with `sed -f distros.sed distros.txt`, it inserts a title, reformats the dates and capitalizes the names. Comments begin with `#` and may appear anywhere but inside a command; blank lines improve readability. The `i` command (and `a`, which appends, and `c`, which replaces) takes multiple lines as long as each but the last ends in a **line-continuation character**, a backslash immediately followed by a carriage return with no intervening spaces. Unlike `tr`, `sed`'s `y` command supports neither ranges nor POSIX classes. The `-i` option edits a file \"in-place\", and several commands may share one line if separated by semicolons: `sed -i 's/lazy/laxy/; s/jumped/jimped/' foo.txt`.\n\n`sed` is most often used for simple one-line tasks; for larger ones many users prefer `awk` and `perl`, which are complete programming languages. `awk` is more specialized, its strength being the manipulation of **tabular data**, and like `sed` it processes files line by line using a scheme similar to an address followed by an action. Both are outside the scope of this book, but are good skills to learn next.\n\n### aspell\n\n`aspell`, successor to `ispell`, is an interactive spellchecker: `aspell check textfile`. It shows ten numbered suggestions plus the actions i (ignore), r (replace), a (add), b (abort) and x (exit), and it writes a backup with the extension `.bak` unless `--dont-backup` is given. Markup defeats plain checking, so `aspell -H check foo.txt` ignores the contents of HTML tags while still checking ALT text; URLs and email addresses are ignored by default.\n\n## Summary\n\n- The text tools take files or standard input and write standard output, which is what makes them composable into pipelines.\n- `sort` orders records by key fields, field ranges and offsets inside fields, with `-t` for other delimiters; `uniq` removes only adjacent duplicates, so sort first.\n- `cut` peels characters or fields out of lines, `paste` lays columns side by side, and `join` merges files on a shared key they must be sorted on.\n- `comm` and `diff` report differences, and `diff -Naur` with `patch` ships changes between versions cheaply.\n- `tr` transliterates, deletes and squeezes characters; `sed` edits a stream with addresses and commands such as `s`, `p`, `d`, `i`, `a`, `y` and `=`.\n- Back references and the `g` flag make `sed` substitution a general rewriting tool, and `-f` collects commands into a script.\n- These tools may not look essential today, but they form a tool set that shows its real worth in shell scripting.",
+      "exercises": [
+        {
+          "title": "Sorting, Cutting and Counting Fields",
+          "slug": "tlcl-ch20-sorting-and-cutting-fields",
+          "order": 1,
+          "instructions": "Build a tab-delimited copy of the book's distribution list, sort it on multiple keys, peel a field out of it and squeeze the duplicates.\n\n```bash\nprintf '%s\\t%s\\t%s\\n' SUSE 10.2 12/07/2006 Fedora 10 11/25/2008 Ubuntu 8.04 04/24/2008 Fedora 8 11/08/2007 Fedora 10 11/25/2008 > /root/distros.txt\nsort -k 1,1 -k 2n /root/distros.txt > /root/distros-sorted.txt\ncut -f 1 /root/distros.txt > /root/distros-names.txt\nsort /root/distros-names.txt | uniq > /root/distros-unique.txt\nsort /root/distros-names.txt | uniq -c > /root/distros-counts.txt\n```\n\nThe two key specifiers sort alphabetically on the first field and numerically on the second, which is what puts Fedora 8 before Fedora 10. `uniq` only removes adjacent duplicates, so the input must be sorted first.",
+          "hint": "Pipe the output of sort into uniq; without the sort the duplicate lines are not adjacent and nothing is removed.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/distros.txt",
+              "expected_value": "",
+              "points_weight": 2,
+              "feedback_on_failure": "Create it with `printf '%s\\t%s\\t%s\\n' SUSE 10.2 12/07/2006 Fedora 10 11/25/2008 Ubuntu 8.04 04/24/2008 Fedora 8 11/08/2007 Fedora 10 11/25/2008 > /root/distros.txt`"
+            },
+            {
+              "rule_type": "output_matches",
+              "target": "head -1 /root/distros-sorted.txt",
+              "expected_value": "Fedora",
+              "points_weight": 3,
+              "feedback_on_failure": "Run `sort -k 1,1 -k 2n /root/distros.txt > /root/distros-sorted.txt`; the first line is a Fedora record"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/distros-names.txt",
+              "expected_value": "SUSE",
+              "points_weight": 2,
+              "feedback_on_failure": "Run `cut -f 1 /root/distros.txt > /root/distros-names.txt`"
+            },
+            {
+              "rule_type": "output_matches",
+              "target": "wc -l < /root/distros-unique.txt",
+              "expected_value": "3",
+              "points_weight": 3,
+              "feedback_on_failure": "Run `sort /root/distros-names.txt | uniq > /root/distros-unique.txt`; three distribution names remain"
+            }
+          ]
+        },
+        {
+          "title": "Editing a Stream with sed",
+          "slug": "tlcl-ch20-editing-a-stream-with-sed",
+          "order": 2,
+          "instructions": "Use the book's date-reordering substitution together with addresses, the `g` flag and the `=` command.\n\n```bash\nprintf '%s\\n' 12/07/2006 11/25/2008 04/24/2008 > /root/dates.txt\nsed 's_\\([0-9][0-9]\\)/\\([0-9][0-9]\\)/\\([0-9][0-9][0-9][0-9]\\)_\\3-\\1-\\2_' /root/dates.txt > /root/dates-iso.txt\nsed -n '1,2p' /root/dates.txt > /root/two-lines.txt\nsed -n '/2008/!p' /root/dates.txt > /root/not-2008.txt\necho \"aaabbbccc\" | sed 's/b/B/g' > /root/squeezed.txt\nsed -n '=' /root/dates.txt > /root/line-numbers.txt\n```\n\nThe underscores show that the delimiter of the `s` command is arbitrary; the three parenthesized subexpressions are recalled in the replacement with the back references `\\3`, `\\1` and `\\2`. The `-n` option switches off auto-print so only `p` produces output, and `=` outputs the current line number.",
+          "hint": "Escape the parentheses and the back references, put the address in front of the command, and remember that ! in an address means every line except the match.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_contains",
+              "target": "/root/dates-iso.txt",
+              "expected_value": "2006-12-07",
+              "points_weight": 3,
+              "feedback_on_failure": "Run `sed 's_\\([0-9][0-9]\\)/\\([0-9][0-9]\\)/\\([0-9][0-9][0-9][0-9]\\)_\\3-\\1-\\2_' /root/dates.txt > /root/dates-iso.txt`"
+            },
+            {
+              "rule_type": "file_exists",
+              "target": "/root/two-lines.txt",
+              "expected_value": "",
+              "points_weight": 2,
+              "feedback_on_failure": "Run `sed -n '1,2p' /root/dates.txt > /root/two-lines.txt`"
+            },
+            {
+              "rule_type": "output_matches",
+              "target": "grep -c 2008 /root/not-2008.txt",
+              "expected_value": "0",
+              "points_weight": 2,
+              "feedback_on_failure": "Run `sed -n '/2008/!p' /root/dates.txt > /root/not-2008.txt`; the exclamation point inverts the address"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/squeezed.txt",
+              "expected_value": "aaaBBBccc",
+              "points_weight": 1,
+              "feedback_on_failure": "Run `echo \"aaabbbccc\" | sed 's/b/B/g' > /root/squeezed.txt`"
+            },
+            {
+              "rule_type": "output_matches",
+              "target": "tail -1 /root/line-numbers.txt",
+              "expected_value": "3",
+              "points_weight": 2,
+              "feedback_on_failure": "Run `sed -n '=' /root/dates.txt > /root/line-numbers.txt`"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Chapter 21: Formatting Output",
+      "slug": "tlcl-ch21-formatting-output",
+      "order": 21,
+      "is_published": true,
+      "description": "Format text for people and for paper with nl, fold, fmt, pr and printf, and understand how the roff family, including groff, turns marked-up text into finished documents.",
+      "content": "# Chapter 21: Formatting Output\n\nThis chapter continues the look at text-related tools, focusing on programs used to **format** text output rather than change the text itself. Such tools prepare text for the eventual printing covered in the next chapter. The programs are `nl`, `fold`, `fmt`, `pr`, `printf` and `groff`.\n\n## Simple Formatting Tools\n\n### nl — Number Lines\n\n`nl` numbers lines; in its simplest use it resembles `cat -n`.\n\n```bash\n[me@linuxbox ~]$ nl distros.txt | head\n     1    SUSE           10.2     12/07/2006\n     2    Fedora         10       11/25/2008\n```\n\nLike `cat`, it accepts files or standard input, and treats multiple files as one stream. `nl` understands **logical pages**, so the numbering can start over, and each logical page is divided into a **header**, **body** and **footer**, within which numbering may be reset or restyled. Sections are marked by markup that must appear alone on its own line and is deleted after processing:\n\n| Markup | Meaning |\n| --- | --- |\n| `\\:\\:\\:` | Start of logical page header |\n| `\\:\\:` | Start of logical page body |\n| `\\:` | Start of logical page footer |\n\nKey options: `-b style` sets body numbering to `a` (all lines), `t` (non-blank, the default), `n` (none) or `pregexp` (lines matching a basic regular expression); `-h` and `-f` do the same for header and footer and default to `n`; `-v number` sets the first number of each page, `-i number` the increment, `-w width` the field width (default 6), `-n format` the justification `ln`, `rn` (default) or `rz` for leading zeros, `-s string` the separator after each number (default a tab), and `-p` stops the numbering resetting at each logical page.\n\nWe can combine tools into a report by adding the markup and a footer to the previous chapter's `sed` script, saved as `distros-nl.sed`:\n\n```bash\n1 i\\\n\\\\:\\\\:\\\\:\\\n\\\nLinux Distributions Report\\\n\\\nName        Ver. Released\\\n----        ---- --------\\\n\\\\:\\\\:\ns/\\([0-9]\\{2\\}\\)\\/\\([0-9]\\{2\\}\\)\\/\\([0-9]\\{4\\}\\)$/\\3-\\1-\\2/\n$ a\\\n\\\\:\\\n\\\nEnd Of Report\n```\n\nThe backslashes of the markup are doubled because `sed` would otherwise read them as escapes. Then:\n\n```bash\n[me@linuxbox ~]$ sort -k 1,1 -k 2n distros.txt | sed -f distros-nl.sed | nl\n```\n\nThe list is sorted by name and version, `sed` inserts header and footer, and `nl` numbers only the body lines. Try `nl -n rz` and `nl -w 3 -s ' '` to see the options at work.\n\n### fold — Wrap Each Line to a Specified Length\n\nFolding breaks lines at a specified width, from files or standard input; the default width is 80 characters.\n\n```bash\n[me@linuxbox ~]$ echo \"The quick brown fox jumped over the lazy dog.\" | fold -w 12\nThe quick br\nown fox jump\ned over the\nlazy dog.\n[me@linuxbox ~]$ echo \"The quick brown fox jumped over the lazy dog.\" | fold -w 12 -s\nThe quick\nbrown fox\njumped over\nthe lazy\ndog.\n```\n\nWithout `-s` the lines break regardless of word boundaries; `-s` breaks at the last available space before the width is reached.\n\n### fmt — A Simple Text Formatter\n\n`fmt` also folds text, plus a lot more: it fills and joins lines in paragraphs while preserving blank lines and indentation, preferring to break at the end of a sentence.\n\n```bash\n[me@linuxbox ~]$ fmt -w 50 fmt-info.txt | head\n[me@linuxbox ~]$ fmt -cw 50 fmt-info.txt\n```\n\nThe first result is awkward because `fmt` preserves the indentation of the first line; `-c` fixes it. The other useful options are `-p string`, which formats only lines beginning with a prefix and re-prefixes each reformatted line; `-s`, split-only mode, which shortens lines but never joins them; `-u`, uniform \"typewriter-style\" spacing of one space between words and two after sentences, which removes justification; and `-w width`, the column width, default 75, with lines formatted slightly shorter to allow for balancing.\n\n`-p` is interesting because many languages use `#` for comments, so only the comments can be reformatted:\n\n```bash\n[me@linuxbox ~]$ fmt -w 50 -p '# ' fmt-code.txt\n# This file contains code with comments.\n\n# This line is a comment. Followed by another\n# comment line. And another.\n\nThis, on the other hand, is a line of code.\n```\n\nAdjoining comment lines are joined while blank lines and unprefixed lines are preserved.\n\n### pr — Format Text for Printing\n\n`pr` paginates text. Printed pages want a top and bottom margin of whitespace, and that whitespace can carry a header and footer.\n\n```bash\n[me@linuxbox ~]$ pr -l 15 -w 65 distros.txt\n2016-12-11 18:27                distros.txt                Page 1\nSUSE            10.2      12/07/2006\nFedora          10        11/25/2008\n```\n\n`-l` sets the page length and `-w` the page width, making a page 65 columns wide and 15 lines long; `pr` separates pages with whitespace and builds a default header of modification time, filename and page number. The many layout options appear in Chapter 22.\n\n### printf — Format and Print Data\n\n`printf` does not accept standard input and is used mostly in scripts rather than on the command line. Originally developed for C, it is a builtin in bash.\n\n```bash\nprintf \"format\" arguments\n[me@linuxbox ~]$ printf \"I formatted the string: %s\\n\" foo\nI formatted the string: foo\n```\n\nA format string holds literal text, escape sequences such as `\\n`, and **conversion specifications** introduced by `%`.\n\n| Specifier | Description |\n| --- | --- |\n| `d` | Format a number as a signed decimal integer. |\n| `f` | Format and output a floating-point number. |\n| `o` | Format an integer as an octal number. |\n| `s` | Format a string. |\n| `x` | Format an integer as a hexadecimal number, lowercase a to f. |\n| `X` | Same as `x` but use uppercase letters. |\n| `%` | Print a literal `%` symbol (specify `%%`). |\n\n```bash\n[me@linuxbox ~]$ printf \"%d, %f, %o, %s, %x, %X\\n\" 380 380 380 380 380 380\n380, 380.000000, 574, 380, 17c, 17C\n```\n\nSix specifications require six arguments. A complete specification is `%[flags][width][.precision]conversion_specification`, and the components must appear in that order. The five flags are `#` for the alternate format (`0` prefix on octal, `0x`/`0X` on hexadecimal), `0` to pad with leading zeros, `-` to left-align since `printf` right-aligns by default, a space to lead positive numbers with a space, and `+` to sign positive numbers. `width` is the minimum field width; `.precision` is digits after the point for numbers, characters output for strings, so `\"%.5s\"` truncates a string and `\"%05.5f\"` leaves the padding invisible because the width is smaller than the number.\n\n```bash\n[me@linuxbox ~]$ printf \"%s\\t%s\\t%s\\n\" str1 str2 str3\nstr1    str2    str3\n[me@linuxbox ~]$ printf \"Line: %05d %15.3f Result: %+15d\\n\" 1071 3.14156295 32589\nLine: 01071           3.142 Result:          +32589\n```\n\nWith `\\t` for tabs and `\\n` for newlines it will even emit a small HTML page.\n\n## Document Formatting Systems\n\nUnix became popular with technical and scientific users partly because it could produce documents. Two families of formatters dominate: those descended from `roff`, including `nroff`, which formats output for devices using monospaced fonts such as terminals and typewriter-style printers, and `troff`, which formats for typesetters producing camera-ready type; and those based on Donald Knuth's TEX. The `roff` family also includes programs for parts of documents, such as `eqn` for equations and `tbl` for tables. TEX is not covered here, both for its complexity and because most Linux systems do not install it by default.\n\n## groff\n\n`groff` is the GNU implementation of `troff`, plus a script emulating `nroff` and the rest of the family. Instead of one-step word processing, `roff` documents are made in two steps: composition in a text editor and formatting by the processor, with instructions embedded in the text as a markup language. The modern analog is the web page, composed in an editor and rendered by a browser.\n\nMan pages live in `/usr/share/man` as gzip-compressed text carrying that markup, and `man` renders them with `groff` and the `mandoc` macro package. We can simulate it:\n\n```bash\n[me@linuxbox ~]$ zcat /usr/share/man/man1/ls.1.gz | head\n.TH LS \"1\" \"January 2018\" \"GNU coreutils 8.28\" \"User Commands\"\n.SH NAME\nls \\- list directory contents\n[me@linuxbox ~]$ zcat /usr/share/man/man1/ls.1.gz | groff -mandoc -T ascii | head\nLS(1)                     User Commands                      LS(1)\nNAME\n       ls - list directory contents\n```\n\nWithout `-T`, output is PostScript, the page description language that describes a printed page to a typesetter-like device; writing it to a file gives a viewable document that `ps2pdf` (part of ghostscript) converts to PDF. With the `tbl` preprocessor we can typeset the distribution list from a stream marked up by `sed`, using the `.TS` and `.TE` requests to bound the table and the rows after `.TS` to declare global properties such as centering and a surrounding box:\n\n```bash\n[me@linuxbox ~]$ sort -k 1,1 -k 2n distros.txt | sed -f distros-tbl.sed | groff -t -T ascii\n```\n\nThe `-t` option makes `groff` preprocess with `tbl`; ASCII output is the best a terminal or typewriter can expect.\n\n## Summary\n\n- These tools format text for human consumption rather than changing the text itself.\n- `nl` numbers lines and understands logical pages with header, body and footer sections marked by `\\:\\:\\:`, `\\:\\:` and `\\:`.\n- `fold` breaks lines at a chosen width, with `-s` to respect word boundaries; `fmt` fills and joins paragraphs, `-c` fixes crown margins and `-p` formats only lines such as comments.\n- `pr` paginates text to a given length and width and adds a header with date, filename and page number.\n- `printf` formats output with `%d`, `%f`, `%o`, `%s`, `%x`, `%X` and `%%`, plus flags, minimum width and precision, and is used mainly inside scripts.\n- `roff`, `nroff`, `troff` and the GNU `groff` format documents from markup, and man pages are simply `groff` with the `mandoc` package.\n- Simple tools such as `fmt` and `pr` serve scripts producing short documents, while `groff` and friends can be used to write books.",
+      "exercises": [
+        {
+          "title": "Formatting Fields and Numbers with printf",
+          "slug": "tlcl-ch21-formatting-with-printf",
+          "order": 1,
+          "instructions": "`printf` takes a format string plus arguments and writes the formatted result to standard output. Reproduce the book's examples, saving each one to a file.\n\n```bash\nprintf \"%s\\t%s\\t%s\\n\" str1 str2 str3 > /root/columns.txt\nprintf \"Line: %05d %15.3f Result: %+15d\\n\" 1071 3.14156295 32589 > /root/numbers.txt\nprintf \"%d, %f, %o, %s, %x, %X\\n\" 380 380 380 380 380 380 > /root/specifiers.txt\n```\n\nSix conversion specifications mean six arguments. The `0` flag pads with leading zeros, `.3` is the precision, `+` signs a positive number, and a minimum field width spaces the columns apart.",
+          "hint": "Optional components must appear in the order flags, width, precision, and each conversion specification consumes one argument.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_contains",
+              "target": "/root/numbers.txt",
+              "expected_value": "01071",
+              "points_weight": 3,
+              "feedback_on_failure": "Run `printf \"Line: %05d %15.3f Result: %+15d\\n\" 1071 3.14156295 32589 > /root/numbers.txt`"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/numbers.txt",
+              "expected_value": "3.142",
+              "points_weight": 3,
+              "feedback_on_failure": "Precision .3 rounds 3.14156295 to 3.142; re-run the printf command into /root/numbers.txt"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/numbers.txt",
+              "expected_value": "+32589",
+              "points_weight": 2,
+              "feedback_on_failure": "Check with `cat /root/numbers.txt`; the plus flag signs positive numbers"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/specifiers.txt",
+              "expected_value": "574",
+              "points_weight": 2,
+              "feedback_on_failure": "Run `printf \"%d, %f, %o, %s, %x, %X\\n\" 380 380 380 380 380 380 > /root/specifiers.txt`; %o prints 380 as octal 574"
+            }
+          ]
+        },
+        {
+          "title": "Building a Numbered Report",
+          "slug": "tlcl-ch21-building-a-numbered-report",
+          "order": 2,
+          "instructions": "Recreate the book's `sort | sed | nl` report with the tools available here: a title, sorted data rows and line numbers.\n\n```bash\nprintf '%s\\n' \"SUSE 10.2 12/07/2006\" \"Fedora 10 11/25/2008\" \"Ubuntu 8.04 04/24/2008\" \"Fedora 8 11/08/2007\" > /root/distros.txt\nsort /root/distros.txt > /root/distros-sorted.txt\n{ echo \"Linux Distributions Report\"; cat -n /root/distros-sorted.txt; echo \"End Of Report\"; } > /root/report.txt\n```\n\n`cat -n` numbers lines in just the way the simplest use of `nl` does, and a brace group sends several commands through one redirect, exactly like the header and footer the `sed` script inserted around the body.",
+          "hint": "Put the title, the numbered body and the footer inside { ... } so a single redirect writes the whole report.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_contains",
+              "target": "/root/report.txt",
+              "expected_value": "Linux Distributions Report",
+              "points_weight": 3,
+              "feedback_on_failure": "Echo \"Linux Distributions Report\" inside the brace group that writes /root/report.txt"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/report.txt",
+              "expected_value": "End Of Report",
+              "points_weight": 2,
+              "feedback_on_failure": "Add the footer line with `echo \"End Of Report\"` inside the same brace group"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/report.txt",
+              "expected_value": "Fedora 10",
+              "points_weight": 2,
+              "feedback_on_failure": "Run `sort /root/distros.txt > /root/distros-sorted.txt` before building the report"
+            },
+            {
+              "rule_type": "output_matches",
+              "target": "grep -c '\t' /root/report.txt",
+              "expected_value": "[1-9]",
+              "points_weight": 3,
+              "feedback_on_failure": "The numbered body lines come from `cat -n /root/distros-sorted.txt`, which separates the number from the text with a tab"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Chapter 22: Printing",
+      "slug": "tlcl-ch22-printing",
+      "order": 22,
+      "is_published": true,
+      "description": "Explain how CUPS, queues and page description languages put text on paper, and prepare text with page sizes, numbering and headers so that a print job comes out right.",
+      "content": "# Chapter 22: Printing\n\nAfter spending the last couple of chapters manipulating text, it is time to put that text on paper. This chapter covers the command line tools used to print files and control printer operation: `pr`, `lpr`, `a2ps`, `lpstat`, `lpq` and `lprm`. Printer **configuration** is deliberately not covered, because it varies from distribution to distribution and is usually set up automatically during installation — and a working printer configuration is needed to perform the exercises in the chapter.\n\n## A Brief History of Printing\n\nIn the pre-PC era computers and printers were large, expensive and centralized, so many users shared one printer. To identify jobs, a **banner page** printed the user's name at the head of each job, and support staff delivered a cart of the day's output.\n\n### Character-Based Printers\n\nEarly printers were almost always **impact printers**, striking a ribbon against the paper, as in daisy-wheel and dot-matrix machines. More important, they used a fixed set of characters intrinsic to the device and printed **monospaced** (fixed-width) fonts at fixed positions. Most printed 10 characters per inch (CPI) horizontally and 6 lines per inch (LPI) vertically, making a US-letter sheet 85 characters wide and 66 lines high; allowing a small margin, 80 characters became the maximum print line width. That is why terminal displays are normally 80 characters wide, and why a monospaced terminal gives a what-you-see-is-what-you-get view of printed output.\n\nSuch a printer receives a simple stream of bytes: code 97 prints an `a`, and the low-numbered control codes move the carriage and paper. Bold is faked by printing a character, backspacing and printing it again, which we can witness:\n\n```bash\n[me@linuxbox ~]$ zcat /usr/share/man/man1/ls.1.gz | nroff -man | cat -A | head\nN^HNA^HAM^HME^HE$\n       ls - list directory contents$\n```\n\nThe `^H` (ctrl-H) characters are the backspaces creating the bold, and a backspace/underscore sequence produces underlining.\n\n### Graphical Printers\n\nGUIs moved printing from characters to graphics, helped by the low-cost laser printer, which prints tiny dots anywhere in the printable area and so can render proportional fonts, photographs and diagrams. The obstacle is data volume. A character page of 60 lines of 80 characters needs `60 x 80 = 4,800 bytes`, while a 300 dot per inch (DPI) laser printer covering an 8 by 10 inch area needs `(8 x 300) x (10 x 300) / 8 = 900,000 bytes`.\n\nThe answer was the **page description language** (PDL), a programming language that describes the contents of a page: \"go to this position, draw the character a in 10-point Helvetica\". The first major PDL was Adobe's **PostScript**, a complete programming language with built-in support for 35 standard fonts and the ability to accept more at runtime. PostScript printers contained their own processor and memory and ran a PostScript interpreter that rendered the program into a bitmap; the generic name for rendering into a large bit pattern is a **raster image processor** (RIP). As computers and networks grew faster the RIP moved onto the host, making good printers much cheaper.\n\n## Printing with Linux\n\nModern Linux systems use two software suites. The **Common Unix Printing System** (CUPS) supplies print drivers and print-job management; **Ghostscript**, a PostScript interpreter, acts as the RIP. CUPS manages printers by creating and maintaining **print queues**: printers are slow compared with the computers feeding them, so a shared printer needs a way to schedule multiple jobs and keep them organized. CUPS also recognizes different data types within reason and converts files to a printable form.\n\n## Preparing Files for Printing\n\n`pr` adjusts text to fit a specific page size, with optional page headers and margins — a direct descendant of the fixed characters-per-line, lines-per-page world of character printers.\n\n| Option | Description |\n| --- | --- |\n| `+first[:last]` | Output a range of pages from first, optionally to last. |\n| `-columns` | Arrange the page content into the given number of columns. |\n| `-a` | List multicolumn output horizontally (across) rather than vertically. |\n| `-d` | Double-space output. |\n| `-D format` | Format the date in page headers with a `date` format string. |\n| `-f` | Use form feeds rather than carriage returns to separate pages. |\n| `-h header` | Use header in the center of the page header instead of the filename. |\n| `-l length` | Set page length; default 66 (US letter at 6 LPI). |\n| `-n` | Number lines. |\n| `-o offset` | Create a left margin offset characters wide. |\n| `-w width` | Set page width; default 72. |\n\n`pr` is often used in pipelines as a filter:\n\n```bash\n[me@linuxbox ~]$ ls /usr/bin | pr -3 -w 65 | head\n```\n\n## Sending a Print Job to a Printer\n\nCUPS supports both historical methods of Unix printing. The Berkeley (LPD) method uses `lpr`; the System V method uses `lp`. Both do roughly the same thing, and the choice is a matter of personal taste.\n\n### lpr — Print Files (Berkeley Style)\n\n`lpr` sends files to the printer and accepts standard input, so it works in a pipeline. Without `-P` the system's default printer is used, and `lpstat -a` lists the printers known to the system.\n\n```bash\n[me@linuxbox ~]$ ls /usr/bin | pr -3 | lpr\n[me@linuxbox ~]$ lpr -P printer_name\n```\n\nIts options: `-# number` sets the number of copies, `-p` pretty-prints each page with a shaded header carrying the date, time, job name and page number, `-P printer` names the output printer and `-r` deletes the files after printing, which suits programs producing temporary output. Many distributions let you define a \"printer\" that writes PDF files instead of paper — handy for experimenting with these commands.\n\n### lp — Print Files (System V Style)\n\n`lp` also takes files or standard input, with a different and slightly more sophisticated option set.\n\n| Option | Description |\n| --- | --- |\n| `-d printer` | Set the destination printer; otherwise the system default. |\n| `-n number` | Set the number of copies. |\n| `-o landscape` | Print in landscape orientation. |\n| `-o fitplot` | Scale the file to fit the page; useful for images such as JPEGs. |\n| `-o scaling=number` | Scale the file; 100 fills the page, larger values span pages. |\n| `-o cpi=number` | Set output characters per inch (default 10). |\n| `-o lpi=number` | Set output lines per inch (default 6). |\n| `-o page-bottom=points` | Set the margins in points; there are 72 points to an inch. |\n| `-P pages` | Print a comma-separated list and/or range of pages, e.g. `1,3,5,7-10`. |\n\nPrinting the same listing at 12 CPI and 8 LPI with a half-inch left margin means adjusting the `pr` options to the new page size too:\n\n```bash\n[me@linuxbox ~]$ ls /usr/bin | pr -4 -w 90 -l 88 | lp -o page-left=36 -o cpi=12 -o lpi=8\n```\n\n### Another Option: a2ps\n\n`a2ps` once meant \"ASCII to PostScript\" and now means \"Anything to PostScript\". Though named like a converter, it is a printing program: by default it sends output to the system's default printer, and its default behaviour is that of a pretty printer.\n\n```bash\n[me@linuxbox ~]$ ls /usr/bin | pr -3 -t | a2ps -o ~/Desktop/ls.ps -L 66\n[stdin (plain): 11 pages on 6 sheets]\n[Total: 11 pages on 6 sheets] saved into the file `/home/me/Desktop/ls.ps'\n```\n\nHere `pr -t` omits headers and footers and `-L 66` matches `a2ps` to the pagination of `pr`. The default layout is \"two-up\", putting two pages on each sheet with its own headers and footers. Useful options include `--columns=number`, `--rows=number`, `--pages=range`, `--line-numbers=interval`, `-b text` and `--footer=text` for titles and footers, `-B` for none, `-f size` for the font size, `-M name` for media such as A4, `-n number` for copies, `-o file` for an output file (`-` is standard output), `-P printer`, `-R` portrait and `-r` landscape, `-T number` for tab stops, `-u text` for a watermark and `--guess` to report how a file will be treated. `enscript` does similar tricks but accepts only text input.\n\n## Monitoring and Controlling Print Jobs\n\nEach printer has a queue where jobs sit until they can be spooled, and CUPS supplies management programs modeled on the Berkeley and System V originals. `lpstat` reports names and availability:\n\n```bash\n[me@linuxbox ~]$ lpstat -a\nPDF accepting requests since Mon 08 Dec 2017 03:05:59 PM EST\nprinter accepting requests since Tue 24 Feb 2018 08:43:22 AM EST\n[me@linuxbox ~]$ lpstat -s\nsystem default destination: printer\ndevice for printer: ipp://print-server:631/printers/printer\n```\n\n`-a` shows whether queues will accept jobs (not the state of the physical printers), `-d` names the default printer, `-p` reports printers, `-r` the print server, `-s` a summary and `-t` a complete report. The output above shows the default printer is a network printer using Internet Printing Protocol (`ipp://`).\n\n`lpq` shows a queue and its jobs, using `-P` to select a printer:\n\n```bash\n[me@linuxbox ~]$ lpq\nprinter is ready\nno entries\n[me@linuxbox ~]$ ls *.txt | pr -3 | lp\nrequest id is printer-603 (1 file(s))\n[me@linuxbox ~]$ lpq\nprinter is ready and printing\nRank    Owner   Job     File(s)                         Total Size\nactive  me      603     (stdin)                         1024 bytes\n```\n\nFinally `lprm` (Berkeley) and `cancel` (System V) terminate jobs and remove them from the queue; they differ slightly in options but do the same thing.\n\n```bash\n[me@linuxbox ~]$ cancel 603\n```\n\nEach has options to remove all the jobs of a user, of a printer, or several job numbers at once.\n\n## Summary\n\n- The printers of the past shaped Unix printing: shared centralized printers, banner pages, and monospaced 10 CPI / 6 LPI pages whose 80-character line we still see in terminals.\n- Graphical printing needed page description languages; PostScript describes a page instead of transmitting nearly a megabyte of dots, and a RIP renders it into a bitmap.\n- Linux printing is CUPS for drivers and job management plus Ghostscript as the PostScript interpreter, organized around per-printer queues.\n- `pr` fits text to a page: length, width, columns, margins, line numbering and page headers, and it is commonly used as a pipeline filter.\n- `lpr` and `lp` both submit jobs from files or standard input; `lp -o` controls orientation, scaling, cpi, lpi, margins and page ranges.\n- `a2ps` is a pretty printer producing PostScript in two-up layout by default, with `-o` to write a file rather than print.\n- `lpstat` reports printers and the default destination, `lpq` shows queue contents and request IDs, and `lprm` or `cancel` remove a job by that ID.",
+      "exercises": [
+        {
+          "title": "Paginating a Listing into Pages",
+          "slug": "tlcl-ch22-paginating-a-listing",
+          "order": 1,
+          "instructions": "A print queue breaks a stream of text into pages, so a good offline rehearsal is to lay a report out page by page before it reaches paper. Build a six-line listing, split it into two pages of three lines and number the rows.\n\n```bash\nprintf '%s\\n' \"SUSE 10.2\" \"Fedora 10\" \"Ubuntu 8.04\" \"Debian 5.0\" \"Mandriva 2008\" \"Gentoo 2008.0\" > /root/report.txt\nsort /root/report.txt > /root/report-sorted.txt\nhead -3 /root/report.txt > /root/page-1.txt\ntail -3 /root/report.txt > /root/page-2.txt\ncat -n /root/report-sorted.txt > /root/report-numbered.txt\n```\n\n`head` and `tail` stand in for the page ranges a queue selects, and numbering the rows is what the line-number option of a page formatter produces.",
+          "hint": "Write the whole listing first, then carve pages out of it with head -3 and tail -3.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/report.txt",
+              "expected_value": "",
+              "points_weight": 2,
+              "feedback_on_failure": "Create it with `printf '%s\\n' \"SUSE 10.2\" \"Fedora 10\" \"Ubuntu 8.04\" \"Debian 5.0\" \"Mandriva 2008\" \"Gentoo 2008.0\" > /root/report.txt`"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/page-1.txt",
+              "expected_value": "SUSE 10.2",
+              "points_weight": 2,
+              "feedback_on_failure": "Run `head -3 /root/report.txt > /root/page-1.txt`"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/page-2.txt",
+              "expected_value": "Gentoo 2008.0",
+              "points_weight": 2,
+              "feedback_on_failure": "Run `tail -3 /root/report.txt > /root/page-2.txt`"
+            },
+            {
+              "rule_type": "output_matches",
+              "target": "wc -l < /root/page-2.txt",
+              "expected_value": "3",
+              "points_weight": 2,
+              "feedback_on_failure": "Check the page size with `wc -l /root/page-2.txt`"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/report-numbered.txt",
+              "expected_value": "Debian 5.0",
+              "points_weight": 2,
+              "feedback_on_failure": "Run `cat -n /root/report-sorted.txt > /root/report-numbered.txt`"
+            }
+          ]
+        },
+        {
+          "title": "Preparing a Job with a Header",
+          "slug": "tlcl-ch22-preparing-a-print-job-header",
+          "order": 2,
+          "instructions": "Print jobs are identified by a banner naming the job, so build the text a queue would receive: a header block, the body, and a version forced into a narrow print line.\n\n```bash\n{ echo \"Job: distribution report\"; echo \"Pages: 2\"; cat /root/report.txt; } > /root/printable.txt\ncat -n /root/printable.txt > /root/printable-numbered.txt\ncut -c 1-12 /root/printable.txt > /root/printable-narrow.txt\n```\n\nThe brace group is the pipeline equivalent of pretty-printing: it puts a header in front of the body in a single pass. The `cut -c 1-12` command shows what happens when text is forced into a narrow print line.",
+          "hint": "Send the header lines and the body through one brace group so a single redirect produces the printable file.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_contains",
+              "target": "/root/printable.txt",
+              "expected_value": "Job: distribution report",
+              "points_weight": 3,
+              "feedback_on_failure": "Echo \"Job: distribution report\" inside the brace group that writes /root/printable.txt"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/printable.txt",
+              "expected_value": "Pages: 2",
+              "points_weight": 2,
+              "feedback_on_failure": "Add `echo \"Pages: 2\"` after the first header line in the same brace group"
+            },
+            {
+              "rule_type": "file_exists",
+              "target": "/root/printable-numbered.txt",
+              "expected_value": "",
+              "points_weight": 2,
+              "feedback_on_failure": "Run `cat -n /root/printable.txt > /root/printable-numbered.txt`"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/printable-narrow.txt",
+              "expected_value": "Job: distrib",
+              "points_weight": 3,
+              "feedback_on_failure": "Run `cut -c 1-12 /root/printable.txt > /root/printable-narrow.txt`"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Chapter 23: Compiling Programs",
+      "slug": "tlcl-ch23-compiling-programs",
+      "order": 23,
+      "is_published": true,
+      "description": "Describe what a compiler, an assembler and a linker each do, read a source tree and its makefile, and follow the configure, make and make install sequence that turns source code into an installed program.",
+      "content": "# Chapter 23: Compiling Programs\n\nThis chapter looks at how to build programs by compiling source code. The availability of source code is the essential freedom that makes Linux possible, and the whole ecosystem of Linux development relies on free exchange between developers. Compiling can become complex and technical, but many compiling tasks are easy and involve only a few steps, so we work through a very simple case as an overview and a starting point for further study. One new command is introduced: `make`, a utility to maintain programs.\n\n## Why Compile?\n\n- **Availability.** Distribution repositories are enormous — Debian alone held more than 68,000 packages at press time — but some distributions lack a desired application, and then the only way to get it is to compile it from source.\n- **Timeliness.** Many distributions do not ship cutting-edge versions, so having the latest version of a program requires compiling.\n\n## What Is Compiling?\n\nSimply put, compiling is the process of translating **source code**, the human-readable description written by a programmer, into the native language of the computer's processor. The CPU works at an elemental level, executing programs in **machine language**: a numeric code describing extremely small operations such as \"add this byte\" or \"copy this byte\", each expressed in binary.\n\n**Assembly language** replaced the numeric codes with (slightly) easier character mnemonics such as CPY for copy and MOV for move; assembly programs are turned into machine language by a program called an **assembler**, and the language is still used for specialized tasks such as device drivers and embedded systems.\n\n**High-level programming languages** let the programmer worry less about the processor and more about the problem. The early ones from the 1950s include FORTRAN for scientific work and COBOL for business applications, both still in limited use; most programs for modern systems are written in C or C++. A **compiler** converts them into machine language, and some compilers translate high-level instructions into assembly language and then use an assembler for the final stage of translation.\n\n## Linking and Libraries\n\n**Linking** is often used in conjunction with compiling. Many programs perform common tasks such as opening a file, and it would be wasteful for each to implement its own routine, so support for common tasks is provided by **libraries**: collections of routines, each performing a task that multiple programs can share. Many of them live in `/lib` and `/usr/lib`, which we can look at directly. A **linker** forms the connections between the output of the compiler and the libraries the program requires, and the final result of that process is the executable program file, ready for use.\n\n## Are All Programs Compiled?\n\nNo. Programs such as shell scripts require no compiling and are executed directly; they are written in **scripting or interpreted languages**, which now include Perl, Python, PHP, Ruby and many others. An **interpreter** inputs the program file and reads and executes each instruction in it.\n\nInterpreted programs generally execute more slowly than compiled ones, because each instruction is translated every time it is carried out, whereas a compiled instruction is translated once and that translation is permanently recorded in the executable file. Interpreted languages are popular because the results are \"fast enough\" and because development is faster and easier: programs are built in a repeating cycle of code, compile, test, and as a program grows the compilation phase can become quite long. Interpreted languages remove that step.\n\n## Compiling a C Program\n\nBefore compiling we need the compiler, the linker and `make`. The C compiler used almost universally on Linux is `gcc` (GNU C Compiler), originally written by Richard Stallman, and most distributions do not install it by default, so we check for it first:\n\n```bash\n[me@linuxbox ~]$ which gcc\n/usr/bin/gcc\n```\n\nDistributions often provide a meta-package, a collection of packages, for software development; failing that, the compiler and `make` are usually sufficient.\n\n### Obtaining the Source Code\n\nThe example is `diction` from the GNU Project, a small program that checks text files for writing quality and style. Following convention, we make a directory for our source and download the package into it:\n\n```bash\n[me@linuxbox ~]$ mkdir src\n[me@linuxbox ~]$ cd src\n[me@linuxbox src]$ ftp ftp.gnu.org\nftp> cd gnu/diction\nftp> ls\n-rw-r--r--    1 1003 65534 141062 Sep 17 2007 diction-1.11.tar.gz\nftp> get diction-1.11.tar.gz\nftp> bye\n```\n\nThe same archive can be fetched over HTTPS with `wget https://ftp.gnu.org/gnu/diction/diction-1.11.tar.gz`. As the \"maintainer\" of this source we keep it in `~/src`; source installed by your distribution lives in `/usr/src`, and source you maintain for several users is usually installed in `/usr/local/src`.\n\nSource is usually supplied as a compressed tar file, a **tarball**, containing the **source tree** — the hierarchy of directories and files that comprise the source. It is unpacked with:\n\n```bash\n[me@linuxbox src]$ tar xzf diction-1.11.tar.gz\n[me@linuxbox src]$ ls\ndiction-1.11        diction-1.11.tar.gz\n```\n\nGNU software follows packaging standards that most other projects follow too: unpacking creates a directory named `project-x.xx`, holding both name and version, which allows easy installation of several versions. Still, examine the layout before unpacking, because some projects dump files into the current directory; use `tar tzvf tarfile | head` first.\n\n### Examining the Source Tree\n\n```bash\n[me@linuxbox diction-1.11]$ ls *.c\ndiction.c  getopt1.c  getopt.c  misc.c  sentence.c  style.c\n[me@linuxbox diction-1.11]$ ls *.h\ngetopt.h  getopt_int.h  misc.h  sentence.h\n```\n\nGNU programs and many others supply the documentation files `README`, `INSTALL`, `NEWS` and `COPYING`, containing the description of the program, how to build and install it, and its licensing terms — it is always a good idea to read `README` and `INSTALL` carefully before attempting a build. The `.c` files hold the two C programs in the package, style and diction, divided into modules, since large programs are commonly broken into smaller, easier-to-manage pieces; they are ordinary text and can be examined with `less`. The `.h` files are **header files**, also ordinary text, containing descriptions of the routines included in a source file or library. For the compiler to connect the modules it must be given a description of every module needed:\n\n```c\n#include \"getopt.h\"\n```\n\nThis instructs the compiler to read `getopt.h` as it reads `diction.c` so that it \"knows\" what is in `getopt.c`, the module shared by both programs. Earlier in the file are includes in angle brackets, which name headers supplied by the system outside the source tree, found in `/usr/include` and installed with the compiler:\n\n```c\n#include <regex.h>\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <unistd.h>\n```\n\n## Building the Program\n\nMost programs build with a simple, two-command sequence:\n\n```bash\n./configure\nmake\n```\n\n`configure` is a shell script supplied with the source tree whose job is to analyze the build environment. Most source code is designed to be portable, to build on more than one kind of Unix-like system, and may need slight adjustments during the build to accommodate differences between systems; `configure` also checks that the necessary external tools and components are installed. Because it is not where the shell normally expects programs, we prefix it with `./` to say it lives in the current working directory. It prints many messages as it tests and configures:\n\n```bash\nchecking for libintl.h... yes\nchecking for library containing gettext... none required\nconfigure: creating ./config.status\nconfig.status: creating Makefile\nconfig.status: creating config.h\n```\n\nWhat matters is that there are **no error messages**; if there were, the configuration failed and the program will not build until the errors are corrected. Among the files created, the most important is the **makefile**.\n\n## make and Makefiles\n\n`make` takes as input a makefile, normally named `Makefile`, which describes the relationships and dependencies among the components that comprise the finished program. Without it `make` refuses to run. It is an ordinary text file. Its first part defines variables that are substituted later, for example `CC= gcc` defines the C compiler, and is used as `$(CC)`:\n\n```\ndiction:    diction.o sentence.o misc.o getopt.o getopt1.o\n            $(CC) -o $@ $(LDFLAGS) diction.o sentence.o misc.o \\\n            getopt.o getopt1.o $(LIBS)\n```\n\nMost of the file defines a **target** — here the executable `diction` — the files it depends on, and the commands needed to create it from its components. The `.o` files are themselves targets:\n\n```\ndiction.o:  diction.c config.h getopt.h misc.h sentence.h\ngetopt.o:   getopt.c getopt.h getopt_int.h\n.c.o:       $(CC) -c $(CPPFLAGS) $(CFLAGS) $<\n```\n\nNo commands are written for them because a general `.c.o` rule states how any `.c` file is compiled into an `.o` file. After `make` runs, the executables `diction` and `style` are present in the directory.\n\nRun `make` again and it says only `make: Nothing to be done for 'all'.` This is the magic of `make`: rather than building everything again, it builds only what needs building. Delete an intermediate target with `rm getopt.o` and `make` rebuilds it and relinks both programs that depend on it. `make` also insists that targets be **newer** than their dependencies; `touch getopt.c` makes the source newer than the executable and the next run of `make` restores the order. Building only what needs building saves little on a small project but a great deal on a large one — the Linux kernel contains several million lines of code.\n\n## Installing the Program\n\nWell-packaged source often includes a special `make` target called `install` that puts the finished product in a system directory, usually `/usr/local/bin`, the traditional location for locally built software. That directory is normally not writable by ordinary users, so the superuser performs the installation, after which `which diction` reports `/usr/local/bin/diction`.\n\n## Summary\n\n- Compiling translates human-readable source code into machine language; assembly language and assemblers sit between the two, and most modern programs are written in C or C++.\n- Libraries in `/lib` and `/usr/lib` hold routines shared by many programs, and a linker connects the compiler's output to them to produce the executable.\n- Interpreted languages such as shell scripts, Perl, Python, PHP and Ruby skip the compile step: slower to run, but faster and easier to develop.\n- Source usually arrives as a tarball containing a source tree named `project-x.xx`; inspect it with `tar tzvf tarfile | head` before unpacking with `tar xzf`.\n- `README`, `INSTALL`, `NEWS` and `COPYING` describe the program, the build and the licence, while `.c` modules and the `.h` headers they `#include` are the raw material of the build.\n- `./configure` analyzes and adapts the build environment, checks its tools and writes the makefile; no error messages means it worked.\n- The makefile records targets, dependencies and substitutions, and `make` builds only what needs building while keeping targets newer than their dependencies.\n- `make install` places the finished program in a system directory such as `/usr/local/bin`.",
+      "exercises": [
+        {
+          "title": "Inspecting the Build Environment",
+          "slug": "tlcl-ch23-inspecting-the-build-environment",
+          "order": 1,
+          "instructions": "A build configuration step surveys the machine before anything is compiled. Do the same by capturing the processor details, the system layout and the machine architecture.\n\n```bash\ncat /proc/cpuinfo > /root/cpu-info.txt\nls /proc > /root/proc-layout.txt\nls /etc > /root/etc-layout.txt\nuname -m > /root/architecture.txt\n```\n\nProcessor information, the process pseudo-filesystem and the machine architecture are exactly the facts a configuration script checks before it decides how to build a program for this machine.",
+          "hint": "Redirect each command's output into its own file under /root so the summary can be inspected afterwards.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_contains",
+              "target": "/root/cpu-info.txt",
+              "expected_value": "processor",
+              "points_weight": 3,
+              "feedback_on_failure": "Run `cat /proc/cpuinfo > /root/cpu-info.txt`"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/proc-layout.txt",
+              "expected_value": "cpuinfo",
+              "points_weight": 2,
+              "feedback_on_failure": "Run `ls /proc > /root/proc-layout.txt`"
+            },
+            {
+              "rule_type": "file_exists",
+              "target": "/root/etc-layout.txt",
+              "expected_value": "",
+              "points_weight": 2,
+              "feedback_on_failure": "Run `ls /etc > /root/etc-layout.txt`"
+            },
+            {
+              "rule_type": "file_exists",
+              "target": "/root/architecture.txt",
+              "expected_value": "",
+              "points_weight": 3,
+              "feedback_on_failure": "Run `uname -m > /root/architecture.txt`"
+            }
+          ]
+        },
+        {
+          "title": "Writing and Running a Two-Line Program",
+          "slug": "tlcl-ch23-writing-a-two-line-program",
+          "order": 2,
+          "instructions": "Compiled programs must be translated before they run; interpreted ones, such as shell scripts, are executed directly by an interpreter and need no compiling. Write a two-line script, give it the execute bit a built program would have, run it and capture its output.\n\n```bash\nprintf '%s\\n' \"#!/bin/sh\" 'echo \"hello from a script\"' > /root/hello.sh\nchmod +x /root/hello.sh\nsh /root/hello.sh > /root/hello-output.txt\n```\n\nThe first line names the interpreter and the second is the program itself — the same text a compiler would have received as source and translated into machine language.",
+          "hint": "Keep the interpreter line first, then set the execute bit with chmod +x before running the file.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/hello.sh",
+              "expected_value": "",
+              "points_weight": 3,
+              "feedback_on_failure": "Run `printf '%s\\n' \"#!/bin/sh\" 'echo \"hello from a script\"' > /root/hello.sh`"
+            },
+            {
+              "rule_type": "command_exit_zero",
+              "target": "sh /root/hello.sh",
+              "expected_value": "",
+              "points_weight": 3,
+              "feedback_on_failure": "Run `sh /root/hello.sh` and correct the script if it does not exit cleanly"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/hello-output.txt",
+              "expected_value": "hello from a script",
+              "points_weight": 4,
+              "feedback_on_failure": "Run `sh /root/hello.sh > /root/hello-output.txt`"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
