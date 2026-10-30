@@ -1,0 +1,329 @@
+{
+  "lessons": [
+    {
+      "title": "Chapter 24: Writing Your First Script",
+      "slug": "tlcl-ch24-writing-your-first-script",
+      "order": 24,
+      "is_published": true,
+      "description": "Write your first shell script with a shebang, make it executable with chmod, and place it where the shell's PATH can find it. You will also learn the formatting tricks that keep scripts readable and maintainable.",
+      "content": "# Chapter 24: Writing Your First Script\n\nA shell script is a plain text file containing a series of commands that the shell executes as if they had been entered directly on the command line. This first scripting chapter shows how to write a script, give it a shebang, make it executable, and place it where the shell can find it, plus formatting tricks that keep scripts maintainable.\n\n## What Are Shell Scripts?\n\nThe shell is both a command line interface and a scripting language interpreter. Most things that can be done on the command line can be done in scripts, and vice versa. By joining command line tools into programs of our own design, the shell can carry out complex sequences of tasks all by itself.\n\n## How to Write a Shell Script\n\nThree things are required: write the script in a text editor (vim, gedit, kate and friends provide syntax highlighting that helps spot common errors), make the script **executable** by setting its permissions, and put the script somewhere the shell can find it.\n\n## Script File Format\n\nFollowing programming tradition, the book's first script is a \"Hello World\" program, saved as `hello_world`:\n\n```bash\n#!/bin/bash\n\n# This is our first script.\n\necho 'Hello World!'\n```\n\nThe first line is a special construct called a **shebang**: the `#!` sequence tells the kernel which interpreter should execute the script that follows, so every shell script should include it as its first line. Everything after a `#` on a line is a comment, and comments may also appear at the ends of lines:\n\n```\n[me@linuxbox ~]$ echo 'Hello World!' # This is a comment too\nHello World!\n```\n\nBecause the kernel launches the interpreter named in the shebang, running a script directly honors the shebang, while invoking it as `sh hello_world` deliberately runs the plain POSIX `sh` instead. Feature sets differ between shells: bash-only syntax such as `[[ ]]` does not work in `sh`, and on the practice VM (BusyBox `ash`) write `#!/bin/sh` and stick to POSIX syntax, since bash may not be installed.\n\n## Executable Permissions\n\nThe system is fussy about not letting any old text file be treated as a program, so we must set execution permission with chmod:\n\n```\n[me@linuxbox ~]$ ls -l hello_world\n-rw-r--r-- 1 me      me      63 2018-03-07 10:10 hello_world\n[me@linuxbox ~]$ chmod 755 hello_world\n-rwxr-xr-x 1 me      me      63 2018-03-07 10:10 hello_world\n```\n\nThe two common settings are **755** for scripts everyone can execute and **700** for scripts only the owner can execute. Scripts must be readable to be executed.\n\n## Script File Location\n\nA script only runs when reached through a path:\n\n```\n[me@linuxbox ~]$ ./hello_world\nHello World!\n[me@linuxbox ~]$ hello_world\nbash: hello_world: command not found\n```\n\nThe **PATH** variable holds a colon-separated list of directories the shell searches for executables, typically including `~/bin`. Create it and move the script in, and it starts working like any other program:\n\n```\n[me@linuxbox ~]$ mkdir bin\n[me@linuxbox ~]$ mv hello_world bin\n[me@linuxbox ~]$ hello_world\nHello World!\n```\n\nIf your PATH lacks it, add this line to `.bashrc` and re-source the file with the dot command (`. .bashrc`, a synonym for `source`):\n\n```bash\nexport PATH=~/bin:\"$PATH\"\n```\n\nGood locations: `~/bin` for personal scripts, `/usr/local/bin` for scripts everyone may use, `/usr/local/sbin` for administrator scripts; `/bin` and `/usr/bin` are reserved for files supplied by the distributor.\n\n## More Formatting Tricks\n\nThe key goal of serious script writing is ease of maintenance. Prefer long option names in scripts (`ls --all --directory` rather than `ls -ad`) and spread long commands over several lines with continuations (backslash-linefeed) and indentation:\n\n```bash\nfind playground \\\n      \\( \\\n            -type f \\\n            -not -perm 0600 \\\n            -exec chmod 0600 '{}' ';' \\\n      \\) \\\n      -or \\\n      \\( \\\n            -type d \\\n            -not -perm 0700 \\\n            -exec chmod 0700 '{}' ';' \\\n      \\)\n```\n\nScripts may use tab characters for indentation, unlike the command line where tabs trigger completion.\n\n## Summary\n\n- A shell script is a text file of commands the shell runs in sequence.\n- The shebang (`#!`) on the first line tells the kernel which interpreter executes the script.\n- chmod 755 (or 700) makes a script executable; scripts must be readable to run.\n- Scripts named without a path are found via PATH; keep personal scripts in `~/bin` and shared ones in `/usr/local/bin`.\n- Comments, long options, indentation, and line continuation improve readability.\n- Ease of maintenance is a central principle of good script writing.",
+      "exercises": [
+        {
+          "title": "Create the hello script",
+          "slug": "ch24-create-hello-script",
+          "order": 1,
+          "instructions": "Create `/root/hello.sh` containing the book's first script, adapted with a POSIX shebang because the practice VM's shell is BusyBox `ash`, and make it executable:\n\n```bash\ncat > /root/hello.sh << 'EOF'\n#!/bin/sh\n\n# This is our first script.\n\necho 'Hello World!'\nEOF\nchmod 755 /root/hello.sh\n```\n\nConfirm the file with `ls -l /root/hello.sh` — the permissions should read `-rwxr-xr-x`.",
+          "hint": "The `#!` shebang must be the very first line of the file or the kernel will not know which interpreter to use.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/hello.sh",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Create /root/hello.sh with the `cat > /root/hello.sh` heredoc shown in the exercise"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/hello.sh",
+              "expected_value": "echo 'Hello World!'",
+              "points_weight": 5,
+              "feedback_on_failure": "Add the line echo 'Hello World!' to /root/hello.sh as shown in the lesson"
+            }
+          ]
+        },
+        {
+          "title": "Run the script directly",
+          "slug": "ch24-run-hello-script",
+          "order": 2,
+          "instructions": "Because `/root/hello.sh` has a shebang and the execute bit set by `chmod 755 /root/hello.sh`, it can be launched straight by its path — the kernel follows the shebang — while `sh` runs it explicitly under the plain shell:\n\n```bash\n/root/hello.sh\nsh /root/hello.sh\n```\n\nBoth must print `Hello World!`.",
+          "hint": "If you see 'Permission denied', rerun `chmod 755 /root/hello.sh`; scripts must be both readable and executable.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "command_exit_zero",
+              "target": "/root/hello.sh",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Run /root/hello.sh; make it executable first with chmod 755 /root/hello.sh"
+            },
+            {
+              "rule_type": "output_matches",
+              "target": "sh /root/hello.sh",
+              "expected_value": "Hello World",
+              "points_weight": 5,
+              "feedback_on_failure": "Run `sh /root/hello.sh` and make sure it prints Hello World!"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Chapter 25: Starting a Project",
+      "slug": "tlcl-ch25-starting-a-project",
+      "order": 25,
+      "is_published": true,
+      "description": "Start the book's report-generator project by outputting a minimal HTML page from a script, using variables and constants, command substitution, and here documents to shape the output.",
+      "content": "# Chapter 25: Starting a Project\n\nStarting with this chapter we build a program stage by stage: a report generator that presents statistics about our system and produces the report in HTML format. Along the way the chapter introduces **variables and constants**, assignment via expansions, and **here documents** as a way of producing output.\n\n## First Stage: Minimal Document\n\nThe first stage outputs a minimal well-formed HTML document to standard output. Create the file `~/bin/sys_info_page`:\n\n```bash\n#!/bin/bash\n\n# Program to output a system information page\n\necho \"<html>\"\necho \"     <head>\"\necho \"          <title>Page Title</title>\"\necho \"     </head>\"\necho \"     <body>\"\necho \"          Page body.\"\necho \"     </body>\"\necho \"</html>\"\n```\n\nMake it executable with `chmod 755`, and redirect its output to a file you can view in a browser:\n\n```\n[me@linuxbox ~]$ sys_info_page > sys_info_page.html\n```\n\nBecause a quoted string may contain newlines, all the echo commands can be combined into one multiline command; the `>` continuation prompt the shell shows while you type it is the PS2 prompt:\n\n```bash\n#!/bin/bash\n\n# Program to output a system information page\n\necho \"<html>\n     <head>\n          <title>Page Title</title>\n     </head>\n     <body>\n          Page body.\n     </body>\n</html>\"\n```\n\n## Variables and Constants\n\nThe string \"System Information Report\" will appear many times, so store it once in a variable. The shell creates variables automatically when it encounters them, which means a misspelled name silently yields an empty string:\n\n```\n[me@linuxbox ~]$ foo=\"yes\"\n[me@linuxbox ~]$ echo $fool\n\n[me@linuxbox ~]$\n```\n\nAn empty expansion can even break commands that require arguments (`cp $foo $fool` fails with \"missing destination file operand\"), so pay close attention to spelling. Variable names may contain letters, digits, and underscores, must begin with a letter or underscore, and may not contain spaces or punctuation. A **constant** uses the same syntax but is intended to keep one value; the convention is uppercase names for constants and lowercase for true variables:\n\n```bash\n#!/bin/bash\n\n# Program to output a system information page\n\nTITLE=\"System Information Report For $HOSTNAME\"\n\necho \"<html>\n        <head>\n                  <title>$TITLE</title>\n        </head>\n        <body>\n                  <h1>$TITLE</h1>\n        </body>\n</html>\"\n```\n\nThe shell makes no distinction between variables and constants; `declare -r TITLE=\"Page Title\"` can enforce immutability for very formal scripts, but it is rarely used.\n\n## Assigning Values to Variables and Constants\n\nAssignment is `variable=value` with no spaces around the equals sign, and the shell treats all data as strings. A value may be anything that expands into a string, including **command substitution** and arithmetic expansion:\n\n```bash\na=z                       # Assign the string \"z\" to variable a.\nb=\"a string\"              # Embedded spaces must be within quotes.\nc=\"a string and $b\"       # Other expansions can be expanded into the assignment.\nd=\"$(ls -l foo.txt)\"      # Results of a command.\ne=$((5 * 7))              # Arithmetic expansion.\nf=\"\\t\\ta string\\n\"        # Escape sequences such as tabs and newlines.\n```\n\nBraces resolve ambiguous names — `mv \"$filename\" \"${filename}1\"` — and it is good practice to enclose variables and command substitutions in double quotes to limit word splitting. Adding real data to the report:\n\n```bash\nTITLE=\"System Information Report For $HOSTNAME\"\nCURRENT_TIME=\"$(date +\"%x %r %Z\")\"\nTIMESTAMP=\"Generated $CURRENT_TIME, by $USER\"\n```\n\n## Here Documents\n\nA **here document** is a form of I/O redirection, `command << token`, in which we embed a body of text into a command's standard input until the token appears again on a line by itself. The report script now uses cat instead of echo:\n\n```bash\ncat << _EOF_\n<html>\n        <head>\n                    <title>$TITLE</title>\n          </head>\n          <body>\n                    <h1>$TITLE</h1>\n                    <p>$TIMESTAMP</p>\n          </body>\n</html>\n_EOF_\n```\n\nThe token (`_EOF_`, \"end of file\", is the convention) must appear alone with no trailing spaces. Inside here documents, single and double quotes lose their special meaning, so quotes can be embedded freely:\n\n```\n[me@linuxbox ~]$ foo=\"some text\"\n[me@linuxbox ~]$ cat << _EOF_\n> $foo\n> \"$foo\"\n> '$foo'\n> \\$foo\n> _EOF_\nsome text\n\"some text\"\n'some text'\n$foo\n```\n\nChanging the redirection operator to `<<-` makes the shell ignore leading **tab** characters (not spaces), allowing an indented here document.\n\n## Summary\n\n- Programs are built in stages; this chapter started the `sys_info_page` report generator.\n- Quoted strings can span lines, and here documents embed blocks of text into a command's standard input.\n- The shell creates variables on demand, so misspelled names expand to nothing and must be watched for.\n- Assignments accept any string, including results of command substitution $( ) and arithmetic expansion $(( )).\n- Uppercase names conventionally mark constants; `declare -r` can make one read-only.\n- Quoting variables and command substitutions protects against word splitting.",
+      "exercises": [
+        {
+          "title": "Output a minimal HTML document",
+          "slug": "ch25-minimal-html-page",
+          "order": 1,
+          "instructions": "Create `/root/sys_info_page` that prints a minimal HTML page using a single quoted multiline string and an uppercase constant, then run it:\n\n```bash\ncat > /root/sys_info_page << 'EOF'\n#!/bin/sh\n\n# Program to output a system information page\n\nTITLE=\"System Information Report\"\n\necho \"<html>\n     <head>\n          <title>$TITLE</title>\n     </head>\n     <body>\n          <h1>$TITLE</h1>\n     </body>\n</html>\"\nEOF\nchmod 755 /root/sys_info_page\nsh /root/sys_info_page\n```\n\nThe outer heredoc is quoted so `$TITLE` is written literally into the script and expanded when the script runs, just like the book's stage-two version.",
+          "hint": "Use the book's single multiline `echo` with a quoted string so the whole page is output in one command.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/sys_info_page",
+              "expected_value": "",
+              "points_weight": 3,
+              "feedback_on_failure": "Create /root/sys_info_page with the cat heredoc shown in the exercise"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/sys_info_page",
+              "expected_value": "<html>",
+              "points_weight": 3,
+              "feedback_on_failure": "The script /root/sys_info_page must output the <html> tag as shown in the lesson"
+            },
+            {
+              "rule_type": "output_matches",
+              "target": "sh /root/sys_info_page",
+              "expected_value": "System Information Report",
+              "points_weight": 4,
+              "feedback_on_failure": "Run `sh /root/sys_info_page` and check it prints the title through the TITLE constant"
+            }
+          ]
+        },
+        {
+          "title": "Add a timestamp with a here document",
+          "slug": "ch25-here-document-timestamp",
+          "order": 2,
+          "instructions": "Rewrite `/root/sys_info_page` to use a here document and command substitution for a timestamp — the book's `date`/`TIMESTAMP` pattern — and run it:\n\n```bash\ncat > /root/sys_info_page << 'EOF'\n#!/bin/sh\n\n# Program to output a system information page\n\nTITLE=\"System Information Report\"\nCURRENT_TIME=\"$(date +\"%x %r %Z\")\"\nTIMESTAMP=\"Generated $CURRENT_TIME\"\n\ncat << _EOF_\n<html>\n        <head>\n             <title>$TITLE</title>\n        </head>\n        <body>\n             <h1>$TITLE</h1>\n             <p>$TIMESTAMP</p>\n        </body>\n</html>\n_EOF_\nEOF\nsh /root/sys_info_page\n```\n\nThe closing `_EOF_` token must sit alone on its line with no trailing spaces. `HOSTNAME` and `USER` may be unset in `ash`, so keep the title and timestamp simple here.",
+          "hint": "The inner `cat << _EOF_` ... `_EOF_` block is the here document; only the outer heredoc delimiter is quoted.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_contains",
+              "target": "/root/sys_info_page",
+              "expected_value": "_EOF_",
+              "points_weight": 5,
+              "feedback_on_failure": "Convert /root/sys_info_page to the here-document form with cat << _EOF_ as shown in the exercise"
+            },
+            {
+              "rule_type": "output_matches",
+              "target": "sh /root/sys_info_page",
+              "expected_value": "Generated",
+              "points_weight": 5,
+              "feedback_on_failure": "Run `sh /root/sys_info_page`; the timestamp line built with `date` should print 'Generated ...'"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Chapter 26: Top-Down Design",
+      "slug": "tlcl-ch26-top-down-design",
+      "order": 26,
+      "is_published": true,
+      "description": "Design a program top-down by decomposing it into shell functions, keep it runnable with stub functions and feedback, and use local variables so functions stay independent and reusable.",
+      "content": "# Chapter 26: Top-Down Design\n\nAs programs grow larger and more complex, they become more difficult to design, code, and maintain. **Top-down design** breaks a large, complex task into a series of small, simple ones: describing \"go to the market\" at the top level (get in car, drive to market, park car, enter market, purchase food) and then decomposing each step further (\"park car\" becomes find parking space, drive in, turn off motor, set brake, exit, lock). This chapter applies that process, and **shell functions**, to our `sys_info_page` report generator.\n\n## Shell Functions\n\nShell functions are \"mini-scripts\" located inside other scripts that can act as autonomous programs. They have two equivalent syntactic forms:\n\n```bash\nfunction name {\n      commands\n      return\n}\n```\n\nand the simpler, generally preferred form:\n\n```bash\nname () {\n      commands\n      return\n}\n```\n\nA demonstration script:\n\n```bash\n#!/bin/bash\n\n# Shell function demo\n\nfunction step2 {\n      echo \"Step 2\"\n      return\n}\n\n# Main program starts here\n\necho \"Step 1\"\nstep2\necho \"Step 3\"\n```\n\nThe shell passes over the definition and begins executing at `echo \"Step 1\"`; calling `step2` runs the function, and `return` terminates it and hands control back to the line after the call. For function calls to be recognized as functions and not external programs, definitions must appear before they are called, and a function must contain at least one command.\n\n## Stepwise Refinement of the Report\n\nThe report needs three new sections: system uptime and load, disk space, and home space. We embed them as three functions whose output is injected into the here document by **command substitution** — `$(report_uptime)`, `$(report_disk_space)`, `$(report_home_space)` — between the heading and the closing body tag. First we add empty functions, called **stubs**, so the script stays runnable:\n\n```bash\nreport_uptime () {\n      return\n}\n\nreport_disk_space () {\n      return\n}\n\nreport_home_space () {\n      return\n}\n```\n\n## Local Variables\n\nAll the variables so far have been global. A **local variable**, created with the `local` keyword inside a function, is accessible only within that function and ceases to exist when the function terminates, so functions can share names without conflicts and be cut and pasted between scripts:\n\n```bash\n#!/bin/bash\n\n# local-vars: script to demonstrate local variables\n\nfoo=0     # global variable foo\n\nfunct_1 () {\n\n        local foo     # variable foo local to funct_1\n\n        foo=1\n        echo \"funct_1: foo = $foo\"\n}\n\nfunct_2 () {\n\n        local foo       # variable foo local to funct_2\n\n        foo=2\n        echo \"funct_2: foo = $foo\"\n}\n\necho \"global:   foo = $foo\"\nfunct_1\necho \"global:   foo = $foo\"\nfunct_2\necho \"global:   foo = $foo\"\n```\n\nRunning it shows the assignments inside the functions never disturb the global `foo`, which stays 0 throughout.\n\n## Keep Scripts Running\n\nBy keeping the program in a runnable state and testing frequently, errors are detected early: if the program ran fine before the most recent change, that change is the likely culprit. Giving each stub feedback proves the logical flow is carried out:\n\n```bash\nreport_uptime () {\n      echo \"Function report_uptime executed.\"\n      return\n}\n```\n\nand the output of the script then lists the three \"Function ... executed.\" lines after the timestamp.\n\n## Fleshing Out the Functions\n\nWith the framework verified, each function becomes a here document wrapping a command in `<pre>` tags to preserve its formatting:\n\n```bash\nreport_uptime () {\n      cat <<- _EOF_\n              <h2>System Uptime</h2>\n              <pre>$(uptime)</pre>\n              _EOF_\n      return\n}\n\nreport_disk_space () {\n      cat <<- _EOF_\n             <h2>Disk Space Utilization</h2>\n             <pre>$(df -h)</pre>\n             _EOF_\n      return\n}\n\nreport_home_space () {\n      cat <<- _EOF_\n             <h2>Home Space Utilization</h2>\n             <pre>$(du -sh /home/*)</pre>\n             _EOF_\n      return\n}\n```\n\n`uptime` reports time since boot and average processor load, `df -h` summarizes disk usage, and `du -sh /home/*` shows the space used by each user. The last is not a complete solution: many systems make home directories non-world-readable, so it only works fully with superuser privileges. Making the script adapt to the user's privileges is the job of the next chapter. Shell functions also make excellent, more capable replacements for aliases in `.bashrc` — for instance a `ds ()` function that echoes a heading and runs `df -h`.\n\n## Summary\n\n- Top-down design decomposes complex tasks into many small, simple ones, refined step by step.\n- Shell functions are mini-scripts inside a script; definitions must appear before the calls.\n- Command substitution lets functions inject their output into the here document.\n- Stub functions with feedback keep scripts runnable so logical flow can be verified early.\n- Local variables make functions independent of each other and of the enclosing script, which makes them portable and reusable.",
+      "exercises": [
+        {
+          "title": "Build sys_info.sh with report functions",
+          "slug": "ch26-sys-info-report-functions",
+          "order": 1,
+          "instructions": "Create `/root/sys_info.sh` following the book's design: three shell functions injected into a here document by command substitution. The book indents the inner here documents with tabs and `<<-`; here the closing tokens sit at column 0 so spaces work:\n\n```bash\ncat > /root/sys_info.sh << 'OUTER'\n#!/bin/sh\n\n# Program to output a system information page\n\nTITLE=\"System Information Report\"\n\nreport_uptime () {\n      cat << _EOF_\n<h2>System Uptime</h2>\n<pre>$(uptime)</pre>\n_EOF_\n      return\n}\n\nreport_disk_space () {\n      cat << _EOF_\n<h2>Disk Space Utilization</h2>\n<pre>$(df -h)</pre>\n_EOF_\n      return\n}\n\nreport_home_space () {\n      cat << _EOF_\n<h2>Home Space Utilization</h2>\n<pre>$(du -sh /home/* 2>/dev/null)</pre>\n_EOF_\n      return\n}\n\ncat << _EOF_\n<html>\n        <head>\n             <title>$TITLE</title>\n        </head>\n        <body>\n             <h1>$TITLE</h1>\n             $(report_uptime)\n             $(report_disk_space)\n             $(report_home_space)\n        </body>\n</html>\n_EOF_\nOUTER\nchmod 755 /root/sys_info.sh\nsh /root/sys_info.sh\n```\n\nThe functions must be defined before the final `cat` calls them, exactly as the book requires.",
+          "hint": "Each function is a here document wrapping `uptime`, `df -h`, or `du -sh` in <pre> tags; keep every inner _EOF_ token at the start of its line.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/sys_info.sh",
+              "expected_value": "",
+              "points_weight": 3,
+              "feedback_on_failure": "Create /root/sys_info.sh with the cat heredoc shown in the exercise"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/sys_info.sh",
+              "expected_value": "report_disk_space",
+              "points_weight": 3,
+              "feedback_on_failure": "Define the report_disk_space shell function in /root/sys_info.sh as shown in the lesson"
+            },
+            {
+              "rule_type": "output_matches",
+              "target": "sh /root/sys_info.sh",
+              "expected_value": "Disk Space Utilization",
+              "points_weight": 4,
+              "feedback_on_failure": "Run `sh /root/sys_info.sh` and check the disk section heading appears in the output"
+            }
+          ]
+        },
+        {
+          "title": "Demonstrate local variables",
+          "slug": "ch26-local-variables-demo",
+          "order": 2,
+          "instructions": "Recreate the book's `local-vars` script as `/root/local_vars.sh` (the `local` keyword also works in BusyBox `ash`) and run it:\n\n```bash\ncat > /root/local_vars.sh << 'EOF'\n#!/bin/sh\n\n# local-vars: script to demonstrate local variables\n\nfoo=0     # global variable foo\n\nfunct_1 () {\n        local foo\n        foo=1\n        echo \"funct_1: foo = $foo\"\n}\n\nfunct_2 () {\n        local foo\n        foo=2\n        echo \"funct_2: foo = $foo\"\n}\n\necho \"global:   foo = $foo\"\nfunct_1\necho \"global:   foo = $foo\"\nfunct_2\necho \"global:   foo = $foo\"\nEOF\nsh /root/local_vars.sh\n```\n\nThe global `foo` must still read `0` after each function call.",
+          "hint": "Declaring `local foo` inside a function hides the global `foo` only within that function.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_contains",
+              "target": "/root/local_vars.sh",
+              "expected_value": "local foo",
+              "points_weight": 5,
+              "feedback_on_failure": "Declare the variables inside the functions with `local foo` as shown in the lesson"
+            },
+            {
+              "rule_type": "output_matches",
+              "target": "sh /root/local_vars.sh",
+              "expected_value": "funct_2: foo = 2",
+              "points_weight": 5,
+              "feedback_on_failure": "Run `sh /root/local_vars.sh` and check each function prints its own value of foo"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Chapter 27: Flow Control: Branching with if",
+      "slug": "tlcl-ch27-flow-control-branching-with-if",
+      "order": 27,
+      "is_published": true,
+      "description": "Branch your scripts with if/then/elif/else, evaluate file, string, and integer conditions with the test command and exit status, and combine expressions with the && and || control operators.",
+      "content": "# Chapter 27: Flow Control: Branching with if\n\nTo make a script change directions based on a test — to branch — we need the `if` compound command and exit status, the `test`/`[ ]` command with its file, string, and integer expressions, the bash extensions `[[ ]]` and `(( ))`, and the `&&`/`||` control operators.\n\n## if Statements\n\nThe pseudocode logic \"If X equals 5, say so; otherwise say otherwise\" becomes:\n\n```bash\nx=5\n\nif [ \"$x\" -eq 5 ]; then\n      echo \"x equals 5.\"\nelse\n      echo \"x does not equal 5.\"\nfi\n```\n\nThe full syntax is `if commands; then commands [elif commands; then commands...] [else commands] fi`: `if` evaluates the success or failure of the commands after it.\n\n## Exit Status\n\nCommands, including our scripts and functions, issue an **exit status** between 0 and 255 when they terminate; by convention zero indicates success and any other value failure. The parameter `$?` displays it:\n\n```\n[me@linuxbox ~]$ ls -d /bin/usr\nls: cannot access /bin/usr: No such file or directory\n[me@linuxbox ~]$ echo $?\n2\n```\n\nThe builtins `true` and `false` do nothing except terminate with status 0 and 1; when a list of commands follows `if`, the last one decides.\n\n## Using test: File Expressions\n\nThe command used most with `if` is `test`, in two equivalent forms, `test expression` and `[ expression ]`; it returns 0 when the expression is true. Useful file expressions: `-e` exists, `-f` regular file, `-d` directory, `-r`, `-w`, `-x` readable/writable/executable, `-s` non-empty, `-L` symlink. The book's demonstration script nests several tests:\n\n```bash\n#!/bin/bash\n\n# test-file: Evaluate the status of a file\n\nFILE=~/.bashrc\n\nif [ -e \"$FILE\" ]; then\n      if [ -f \"$FILE\" ]; then\n             echo \"$FILE is a regular file.\"\n      fi\n      if [ -d \"$FILE\" ]; then\n             echo \"$FILE is a directory.\"\n      fi\n      if [ -r \"$FILE\" ]; then\n             echo \"$FILE is readable.\"\n      fi\n      if [ -w \"$FILE\" ]; then\n             echo \"$FILE is writable.\"\n      fi\n      if [ -x \"$FILE\" ]; then\n             echo \"$FILE is executable/searchable.\"\n      fi\nelse\n      echo \"$FILE does not exist\"\n      exit 1\nfi\n\nexit\n```\n\n`$FILE` is quoted inside every test — a defense against an empty expansion turning operators into strings — and `exit 1` reports failure.\n\n## String and Integer Expressions\n\nString expressions: `string` (not null), `-n`, `-z`, `=`, `!=`, and `>`/`<` (quote them under `test` or they become redirections). Integer expressions: `-eq`, `-ne`, `-le`, `-lt`, `-ge`, `-gt`. The book's string script screens empty input to standard error and chains `elif` (\"else if\") branches:\n\n```bash\n#!/bin/bash\n\n# test-string: evaluate the value of a string\n\nANSWER=maybe\n\nif [ -z \"$ANSWER\" ]; then\n      echo \"There is no answer.\" >&2\n      exit 1\nfi\n\nif [ \"$ANSWER\" = \"yes\" ]; then\n      echo \"The answer is YES.\"\nelif [ \"$ANSWER\" = \"no\" ]; then\n      echo \"The answer is NO.\"\nelif [ \"$ANSWER\" = \"maybe\" ]; then\n      echo \"The answer is MAYBE.\"\nelse\n      echo \"The answer is UNKNOWN.\"\nfi\n```\n\nThe integer script nests `if` inside `else` and finds even/odd with a modulo: `[ $((INT % 2)) -eq 0 ]`.\n\n## A More Modern Version of test\n\n`[[ expression ]]` supports all of `test`'s expressions plus regular-expression matching, letting the integer script verify its value is really an integer:\n\n```bash\nif [[ \"$INT\" =~ ^-?[0-9]+$ ]]; then\n```\n\n`[[ ]]` also supports pattern matching with `==` (`[[ $FILE == foo.* ]]`), and `(( ))` performs integer truth tests with natural syntax (`((INT < 0))`). Both are bash-only; `[ ]` is POSIX, which is what the BusyBox `ash` practice VM understands.\n\n## Combining Expressions\n\nLogical operators join expressions: `-a`/`-o`/`!` for `test`, `&&`/`||`/`!` for `[[ ]]` and `(( ))`:\n\n```bash\nif [[ \"$INT\" -ge \"$MIN_VAL\" && \"$INT\" -le \"$MAX_VAL\" ]]; then\n      echo \"$INT is within $MIN_VAL to $MAX_VAL.\"\nelse\n      echo \"$INT is out of range.\"\nfi\n```\n\n`!` negates an expression, with parentheses grouping the combination; under `test` the parentheses must be escaped: `[ ! \\( \"$INT\" -ge \"$MIN_VAL\" -a \"$INT\" -le \"$MAX_VAL\" \\) ]`.\n\n## Control Operators\n\n`command1 && command2` executes `command2` only if `command1` succeeds; `command1 || command2` only if it fails:\n\n```\n[me@linuxbox ~]$ mkdir temp && cd temp\n[me@linuxbox ~]$ [ -d temp ] || mkdir temp\n```\n\nThis handles errors in scripts, for example `[ -d temp ] || exit 1`.\n\n## Solving the Home Space Problem\n\n`id -u` outputs the effective user's numeric ID and the superuser is always zero, so the report script can adapt to its user:\n\n```bash\nreport_home_space () {\n      if [[ \"$(id -u)\" -eq 0 ]]; then\n             cat <<- _EOF_\n                   <h2>Home Space Utilization (All Users)</h2>\n                   <pre>$(du -sh /home/*)</pre>\n                   _EOF_\n      else\n             cat <<- _EOF_\n                   <h2>Home Space Utilization ($USER)</h2>\n                   <pre>$(du -sh $HOME)</pre>\n                   _EOF_\n      fi\n      return\n}\n```\n\n## Summary\n\n- `if` branches on the exit status of commands; zero means success, and `$?` reveals the last status.\n- `test`/`[ ]` supplies file, string, and integer expressions; quote parameters and escape `<`, `>`, `(`, `)`.\n- `elif` builds multi-way branches, and error messages belong on standard error.\n- `[[ ]]` adds regex (`=~`) and pattern matching, and `(( ))` handles integer comparisons; both are bash-only.\n- The `&&` and `||` control operators branch on one command's success or failure.",
+      "exercises": [
+        {
+          "title": "Evaluate a file with nested if tests",
+          "slug": "ch27-test-file-script",
+          "order": 1,
+          "instructions": "Adapt the book's `test-file` script as `/root/test_file.sh`, pointing `FILE` at `/etc/passwd` (which exists on the practice VM), and run it. Use `[ ]` tests so it works in `ash`:\n\n```bash\ncat > /root/test_file.sh << 'EOF'\n#!/bin/sh\n\n# test-file: Evaluate the status of a file\n\nFILE=/etc/passwd\n\nif [ -e \"$FILE\" ]; then\n      if [ -f \"$FILE\" ]; then\n             echo \"$FILE is a regular file.\"\n      fi\n      if [ -r \"$FILE\" ]; then\n             echo \"$FILE is readable.\"\n      fi\n      if [ -w \"$FILE\" ]; then\n             echo \"$FILE is writable.\"\n      fi\nelse\n      echo \"$FILE does not exist\"\n      exit 1\nfi\nEOF\nsh /root/test_file.sh\n```\n\nKeep the book's details: the parameter is quoted inside every test, and the failure path sets the exit status with `exit 1`.",
+          "hint": "Quote \"$FILE\" inside the [ ] expressions so an empty value cannot turn the operators into plain strings.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/test_file.sh",
+              "expected_value": "",
+              "points_weight": 3,
+              "feedback_on_failure": "Create /root/test_file.sh with the cat heredoc shown in the exercise"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/test_file.sh",
+              "expected_value": "-e \"$FILE\"",
+              "points_weight": 3,
+              "feedback_on_failure": "Use the quoted file test `[ -e \"$FILE\" ]` in /root/test_file.sh as shown"
+            },
+            {
+              "rule_type": "output_matches",
+              "target": "sh /root/test_file.sh",
+              "expected_value": "is a regular file",
+              "points_weight": 4,
+              "feedback_on_failure": "Run `sh /root/test_file.sh` and check it reports /etc/passwd is a regular file"
+            }
+          ]
+        },
+        {
+          "title": "Branch an elif chain on a string",
+          "slug": "ch27-elif-string-branch",
+          "order": 2,
+          "instructions": "Recreate the book's `test-string` script as `/root/answer.sh` with `ANSWER=maybe` and run it:\n\n```bash\ncat > /root/answer.sh << 'EOF'\n#!/bin/sh\n\n# test-string: evaluate the value of a string\n\nANSWER=maybe\n\nif [ -z \"$ANSWER\" ]; then\n      echo \"There is no answer.\" >&2\n      exit 1\nfi\n\nif [ \"$ANSWER\" = \"yes\" ]; then\n      echo \"The answer is YES.\"\nelif [ \"$ANSWER\" = \"no\" ]; then\n      echo \"The answer is NO.\"\nelif [ \"$ANSWER\" = \"maybe\" ]; then\n      echo \"The answer is MAYBE.\"\nelse\n      echo \"The answer is UNKNOWN.\"\nfi\nEOF\nsh /root/answer.sh\n```\n\nAs an experiment, edit `ANSWER` to `yes`, `no`, and an empty string, re-running each time; the empty case must fail with exit status 1 (check it with `echo $?`).",
+          "hint": "`elif` is short for 'else if' and chains several mutually exclusive tests before the final `else`.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_contains",
+              "target": "/root/answer.sh",
+              "expected_value": "elif",
+              "points_weight": 5,
+              "feedback_on_failure": "Build the multi-way branch with elif clauses in /root/answer.sh as shown in the lesson"
+            },
+            {
+              "rule_type": "output_matches",
+              "target": "sh /root/answer.sh",
+              "expected_value": "The answer is MAYBE",
+              "points_weight": 5,
+              "feedback_on_failure": "Run `sh /root/answer.sh`; with ANSWER=maybe it must print 'The answer is MAYBE.'"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Chapter 28: Reading Keyboard Input",
+      "slug": "tlcl-ch28-reading-keyboard-input",
+      "order": 28,
+      "is_published": true,
+      "description": "Make scripts interactive with the read command and its prompt, silent, and timeout options, validate user input, and assemble a menu-driven program from the tools of the previous chapters.",
+      "content": "# Chapter 28: Reading Keyboard Input\n\nOur scripts so far lack interactivity. The `read` builtin reads one line of standard input — from the keyboard or, with redirection, from a file — and this chapter combines it with branching to validate input and build menus.\n\n## read\n\nThe syntax is `read [-options] [variable...]`; fields are assigned to the named variables, and with no names the whole line goes into `REPLY`. Making the integer evaluator interactive:\n\n```bash\n#!/bin/bash\n\n# read-integer: evaluate the value of an integer.\n\necho -n \"Please enter an integer -> \"\nread int\n```\n\n`echo -n` prints the prompt without a newline; the rest is the Chapter 27 validation plus the even/odd test `[ $((int % 2)) -eq 0 ]` built on the arithmetic expansion from Chapter 25 (the book treats arithmetic evaluation, including bash's `let`, later). With several names, missing inputs leave the extra variables empty and excess input piles into the last one (the book's read-multiple demo puts `'e f g'` in var5).\n\n## Options\n\nOptions: `-p prompt`, `-n num` characters instead of a line, `-s` silent (for passwords), `-t seconds` timeout (non-zero exit status on timeout), `-r` raw, `-a array`, `-d delimiter`, `-u fd`, and bash's `-e`/`-i` Readline editing with a default reply. On the BusyBox `ash` VM `-p`, `-s`, `-n`, `-t` work; `-e`/`-i` are bash-only. The book combines `-t` and `-s`:\n\n```bash\n#!/bin/bash\n\n# read-secret: input a secret passphrase\n\nif read -t 10 -sp \"Enter secret passphrase > \" secret_pass; then\n      echo -e \"\\nSecret passphrase = '$secret_pass'\"\nelse\n      echo -e \"\\nInput timed out\" >&2\n      exit 1\nfi\n```\n\n## IFS and Here Strings\n\nRead word-splits input using the `IFS` (Internal Field Separator) variable, by default space, tab, and newline. Setting `IFS=\":\"` parses `/etc/passwd` records, and the `<<<` **here string** feeds one string to a command's standard input:\n\n```bash\nIFS=\":\" read user pw uid gid name home shell <<< \"$file_info\"\n```\n\nThe line combines a prefix assignment (alters the environment for that command only), the list of names, and a here string holding the line fetched by `file_info=\"$(grep \"^$user_name:\" $FILE)\"`.\n\nYou cannot pipe `read`: `echo \"foo\" | read` appears to succeed but `REPLY` stays empty, because pipelines run in a **subshell** — a copy of the environment destroyed when the command finishes, so a subshell can never alter its parent's environment. Here strings are one workaround.\n\n## Validating Input\n\nThe unexpected usually arrives as bad input, so every program should screen it. The book's validator combines shell functions, `[[ ]]`, `(( ))`, `&&`, and regular expressions:\n\n```bash\n#!/bin/bash\n\n# read-validate: validate input\n\ninvalid_input () {\n      echo \"Invalid input '$REPLY'\" >&2\n      exit 1\n}\n\nread -p \"Enter a single item > \"\n\n# input is empty (invalid)\n[[ -z \"$REPLY\" ]] && invalid_input\n\n# input is multiple items (invalid)\n(( \"$(echo \"$REPLY\" | wc -w)\" > 1 )) && invalid_input\n\n# is input a valid filename?\nif [[ \"$REPLY\" =~ ^[-[:alnum:]\\._]+$ ]]; then\n      echo \"'$REPLY' is a valid filename.\"\n      ...\n```\n\nInside the filename branch the script nests further tests: `[[ -e \"$REPLY\" ]]` for existence, and the patterns `^-?[[:digit:]]*\\.[[:digit:]]+$` and `^-?[[:digit:]]+$` to tell a floating point number from an integer.\n\n```\n\n## Menus\n\nIn a menu-driven program the script divides into two parts: display the menu and read the answer, then carry out the chosen action:\n\n```bash\n#!/bin/bash\n\n# read-menu: a menu driven system information program\n\nclear\necho \"\nPlease Select:\n\n1. Display System Information\n2. Display Disk Space\n3. Display Home Space Utilization\n0. Quit\n\"\nread -p \"Enter selection [0-3] > \"\n\nif [[ \"$REPLY\" =~ ^[0-3]$ ]]; then\n      if [[ \"$REPLY\" == 0 ]]; then\n            echo \"Program terminated.\"\n            exit\n      fi\n      if [[ \"$REPLY\" == 1 ]]; then\n            echo \"Hostname: $HOSTNAME\"\n            uptime\n            exit\n      fi\n      if [[ \"$REPLY\" == 2 ]]; then\n            df -h\n            exit\n      fi\n      if [[ \"$REPLY\" == 3 ]]; then\n            if [[ \"$(id -u)\" -eq 0 ]]; then\n                   echo \"Home Space Utilization (All Users)\"\n                   du -sh /home/*\n            else\n                   echo \"Home Space Utilization ($USER)\"\n                   du -sh \"$HOME\"\n            fi\n            exit\n      fi\nelse\n      echo \"Invalid entry.\" >&2\n      exit 1\nfi\n```\n\nThe `exit` calls stop the script from running later code after an action.\n\n## Let's Try: Number Guessing\n\nThe chapter's Extra Credit asks you to rewrite these programs with `test` instead of `[[ ]]`, using grep for the regular expressions. Combining `read`, `[ ]` and arithmetic also gives a number-guessing game:\n\n```bash\n#!/bin/sh\n# guess-number: built from this chapter's tools\n\nanswer=42\nread -p \"Enter your guess > \" guess\n\nif [ \"$guess\" = \"$answer\" ]; then\n      echo \"Correct! You win.\"\nelif [ \"$guess\" -lt \"$answer\" ]; then\n      echo \"Too low.\"\nelse\n      echo \"Too high.\"\nfi\n```\n\n## Summary\n\n- `read` stores one line of standard input into variables, or into `REPLY` when given no names.\n- `-p`, `-n`, `-s` and `-t` add prompts, character counts, silent input, and timeouts.\n- `IFS` controls field splitting, prefix assignments apply only to the following command, and `<<<` feeds a here string.\n- Piping into read fails because subshells cannot alter the parent environment.\n- Validate every input against empty values, extra words, and invalid characters.",
+      "exercises": [
+        {
+          "title": "A read-based integer evaluator",
+          "slug": "ch28-read-integer-script",
+          "order": 1,
+          "instructions": "Create `/root/read_integer.sh` from the book's `read-integer`, rewritten with POSIX `[ ]` tests as the book's Extra Credit suggests, and run it non-interactively by feeding stdin with an `echo` pipe:\n\n```bash\ncat > /root/read_integer.sh << 'EOF'\n#!/bin/sh\n\n# read-integer: evaluate the value of an integer.\n\nread -p \"Please enter an integer -> \" int\n\nif [ -z \"$int\" ]; then\n      echo \"Input value is not an integer.\" >&2\n      exit 1\nfi\n\nif [ \"$int\" -eq 0 ]; then\n      echo \"$int is zero.\"\nelif [ \"$int\" -lt 0 ]; then\n      echo \"$int is negative.\"\nelse\n      echo \"$int is positive.\"\nfi\n\nif [ $((int % 2)) -eq 0 ]; then\n      echo \"$int is even.\"\nelse\n      echo \"$int is odd.\"\nfi\nEOF\nchmod 755 /root/read_integer.sh\necho 7 | sh /root/read_integer.sh\n```\n\nThe `read -p` prompt and the `$((int % 2))` modulo test both work in BusyBox `ash`.",
+          "hint": "The book's original validates with bash's `[[ \"$int\" =~ ^-?[0-9]+$ ]]`; this extra-credit rewrite guards the value with `[ -z ]` and `[ -eq/-lt ]` tests instead.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_contains",
+              "target": "/root/read_integer.sh",
+              "expected_value": "read -p",
+              "points_weight": 4,
+              "feedback_on_failure": "Read the value with `read -p \"Please enter an integer -> \" int` as shown in the lesson"
+            },
+            {
+              "rule_type": "output_matches",
+              "target": "echo 7 | sh /root/read_integer.sh",
+              "expected_value": "7 is positive",
+              "points_weight": 3,
+              "feedback_on_failure": "Run `echo 7 | sh /root/read_integer.sh` and check the script classifies 7 as positive"
+            },
+            {
+              "rule_type": "command_exit_zero",
+              "target": "echo 0 | sh /root/read_integer.sh",
+              "expected_value": "",
+              "points_weight": 3,
+              "feedback_on_failure": "Run `echo 0 | sh /root/read_integer.sh`; it should report '0 is zero.' and exit 0"
+            }
+          ]
+        },
+        {
+          "title": "A menu-driven system information program",
+          "slug": "ch28-read-menu-script",
+          "order": 2,
+          "instructions": "Build the book's `read-menu` as `/root/read_menu.sh`, rewritten with `[ ]` tests for the POSIX shell (the book's version uses bash `[[ ]]` and `clear`), and test the disk-space choice without typing interactively:\n\n```bash\ncat > /root/read_menu.sh << 'EOF'\n#!/bin/sh\n\n# read-menu: a menu driven system information program\n\necho \"\nPlease Select:\n\n1. Display System Information\n2. Display Disk Space\n3. Display Home Space Utilization\n0. Quit\n\"\n\nread -p \"Enter selection [0-3] > \" reply\n\nif [ \"$reply\" = \"0\" ]; then\n      echo \"Program terminated.\"\nelif [ \"$reply\" = \"1\" ]; then\n      echo \"Hostname: $(uname -n)\"\n      uptime\nelif [ \"$reply\" = \"2\" ]; then\n      df -h\nelif [ \"$reply\" = \"3\" ]; then\n      echo \"Home Space Utilization\"\n      du -sh /home/* 2>/dev/null\nelse\n      echo \"Invalid entry.\" >&2\n      exit 1\nfi\nEOF\nchmod 755 /root/read_menu.sh\necho 2 | sh /root/read_menu.sh\n```\n\nThe script splits into the book's two parts: display the menu and read the answer, then dispatch on the answer.",
+          "hint": "Each menu branch lives inside the elif chain so only the selected action runs; test the whole script with `echo 2 | sh /root/read_menu.sh`.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_contains",
+              "target": "/root/read_menu.sh",
+              "expected_value": "Enter selection",
+              "points_weight": 3,
+              "feedback_on_failure": "Include the prompt `read -p \"Enter selection [0-3] > \" reply` in /root/read_menu.sh as shown"
+            },
+            {
+              "rule_type": "output_matches",
+              "target": "echo 2 | sh /root/read_menu.sh",
+              "expected_value": "Filesystem",
+              "points_weight": 4,
+              "feedback_on_failure": "Run `echo 2 | sh /root/read_menu.sh`; choice 2 must print the df -h disk table"
+            },
+            {
+              "rule_type": "command_exit_zero",
+              "target": "echo 0 | sh /root/read_menu.sh",
+              "expected_value": "",
+              "points_weight": 3,
+              "feedback_on_failure": "Run `echo 0 | sh /root/read_menu.sh` and check choice 0 prints 'Program terminated.'"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
