@@ -8,6 +8,7 @@
  * - curl: HTTP download & transfer client wrapper
  * - pkg: DistroPedia package manager (pkg list, pkg info, pkg install)
  * - nano: Simple interactive file editor
+ * - file: BusyBox-safe type reporter (the Buildroot image ships no libmagic)
  */
 
 export const GUEST_PACKAGES = [
@@ -66,7 +67,7 @@ export const GUEST_PACKAGES = [
     'cat << \'EOF\' > /bin/calc && chmod +x /bin/calc',
     '#!/bin/sh',
     'if [ $# -gt 0 ]; then',
-    '  echo "$*" | awk \'{printf "%.4f\\\\n", \'\"$*\"\'}\' 2>/dev/null || echo "$*" | bc -l',
+    '  echo "$*" | awk \'{printf "%.4f\\n", \'\"$*\"\'}\' 2>/dev/null || echo "$*" | bc -l',
     'else',
     '  echo "DistroPedia Calculator (type expression or \'exit\')"',
     '  while true; do',
@@ -129,6 +130,7 @@ export const GUEST_PACKAGES = [
     '    echo "  calc (py) [installed] - Math expression evaluator"',
     '    echo "  curl      [installed] - HTTP data transfer utility"',
     '    echo "  nano      [installed] - Simple line-oriented text editor"',
+    '    echo "  file      [installed] - File type reporter"',
     '    echo ""',
     '    echo "Run any package directly by typing its name (e.g. \'neofetch\' or \'cowsay hello\')."',
     '    ;;',
@@ -153,8 +155,50 @@ export const GUEST_PACKAGES = [
     '    ;;',
     'esac',
     'EOF',
-    'echo "alias ll=\'ls -la\'" >> /root/.profile 2>/dev/null',
-    'echo "alias la=\'ls -A\'" >> /root/.profile 2>/dev/null',
-    'echo "alias cls=\'clear\'" >> /root/.profile 2>/dev/null',
+    'grep -q "alias ll=" /root/.profile 2>/dev/null || echo "alias ll=\'ls -la\'" >> /root/.profile',
+    'grep -q "alias la=" /root/.profile 2>/dev/null || echo "alias la=\'ls -A\'" >> /root/.profile',
+    'grep -q "alias cls=" /root/.profile 2>/dev/null || echo "alias cls=\'clear\'" >> /root/.profile',
+  ].join('\n'),
+
+  // 8. file (BusyBox builds ship no libmagic, but chapters teach `file`)
+  [
+    'cat << \'EOF\' > /bin/file && chmod +x /bin/file',
+    '#!/bin/sh',
+    'for arg in "$@"; do',
+    '  case "$arg" in -*) continue ;; esac',
+    '  if [ ! -e "$arg" ]; then echo "$arg: cannot open (No such file or directory)"; continue; fi',
+    '  if [ -d "$arg" ]; then echo "$arg: directory"; continue; fi',
+    '  if [ -h "$arg" ]; then echo "$arg: symbolic link"; continue; fi',
+    '  if [ ! -s "$arg" ]; then echo "$arg: empty"; continue; fi',
+    '  if head -c 400 "$arg" 2>/dev/null | LC_ALL=C grep -q \'[^ -~]\'; then',
+    '    echo "$arg: data"',
+    '  elif head -n 1 "$arg" | grep -q \'^#\!\'; then',
+    '    echo "$arg: shell script text"',
+    '  else',
+    '    echo "$arg: ASCII text"',
+    '  fi',
+    'done',
+    'EOF',
   ].join('\n'),
 ];
+
+/**
+ * Commands the syllabus teaches that this Buildroot guest genuinely cannot run
+ * (no package manager, no compiler, no print spooler, no roff suite, no ssh
+ * client, bash-only syntax). Used to keep "try it now" chips honest; the book
+ * text still explains them.
+ */
+export const GUEST_UNAVAILABLE_COMMANDS = new Set([
+  'apt', 'apt-get', 'yum', 'dnf', 'rpm', 'dpkg', 'pacman', 'zypper', 'emerge',
+  'gcc', 'cc', 'g++', 'make', 'autoconf', 'automake',
+  'bash', 'zsh', 'csh', 'tcsh', 'ksh', 'dash',
+  'man', 'apropos', 'whatis', 'info',
+  'ssh', 'scp', 'slogin', 'rsync', 'nc', 'netcat', 'dig',
+  'zip', 'bzip2', '7z', 'rar',
+  'lp', 'lpr', 'lpq', 'lprm', 'lpstat', 'lpc', 'cancel', 'a2ps', 'enscript', 'ps2pdf',
+  'groff', 'nroff', 'troff', 'roff', 'tbl', 'eqn', 'mandoc', 'pr', 'fmt', 'expand',
+  'unexpand', 'col', 'colrm', 'tabs', 'aspell', 'spell', 'diction',
+  'stat', 'mkfs', 'wodim', 'cdrecord', 'vmstat', 'iostat', 'cal', 'at', 'batch',
+  'sudo', 'vim', 'gedit', 'python', 'python3', 'perl', 'ruby',
+  'shutdown', 'poweroff', 'ifup', 'ifdown', 'nmcli', 'systemctl', 'service',
+]);
