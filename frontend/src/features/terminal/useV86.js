@@ -26,6 +26,9 @@ export function useV86({ onOutput, onReady, onError } = {}) {
   const [isResumed, setIsResumed] = useState(false);
   const isMountedRef = useRef(true);
   const packagesInjectedRef = useRef(false);
+  // Decoded copy of everything the guest has printed, used by the verification probe
+  const outputTailRef = useRef('');
+  const decoderRef = useRef(new TextDecoder('utf-8', { fatal: false }));
 
   // Keep latest callbacks in refs so event listeners never have stale closures
   const onOutputRef = useRef(onOutput);
@@ -113,6 +116,25 @@ export function useV86({ onOutput, onReady, onError } = {}) {
         const isRestoring = !!stateBufferToLoad;
         setIsResumed(isRestoring);
 
+        // Type the DistroPedia extras into the guest shell once it is at a prompt
+        const injectGuestPackages = (emu) => {
+          if (packagesInjectedRef.current) return;
+          packagesInjectedRef.current = true;
+          let i = 0;
+          const step = () => {
+            if (!isMountedRef.current || emulatorRef.current !== emu) return;
+            if (i >= GUEST_PACKAGES.length) return;
+            try {
+              emu.serial0_send(GUEST_PACKAGES[i] + '\n');
+            } catch {
+              return;
+            }
+            i += 1;
+            setTimeout(step, 700);
+          };
+          setTimeout(step, isRestoring ? 600 : 300);
+        };
+
         const config = {
           wasm_path: '/v86/v86.wasm',
           bios: {
@@ -130,7 +152,6 @@ export function useV86({ onOutput, onReady, onError } = {}) {
         if (isRestoring) {
           // Restore exact VM RAM & CPU state from saved buffer
           config.initial_state = { buffer: stateBufferToLoad };
-          packagesInjectedRef.current = true; // Already installed in saved state
         } else {
           // Fresh Linux boot using Buildroot kernel
           config.bzimage = {
@@ -163,16 +184,26 @@ export function useV86({ onOutput, onReady, onError } = {}) {
 
           if (!flushScheduled) {
             flushScheduled = true;
-            requestAnimationFrame(() => {
+            const flush = () => {
+              if (!flushScheduled) return;
               flushScheduled = false;
               if (byteBuffer.length > 0) {
                 const bytes = new Uint8Array(byteBuffer);
                 byteBuffer = [];
+                const text = decoderRef.current.decode(bytes, { stream: true });
+                outputTailRef.current += text;
+                if (outputTailRef.current.length > 300000) {
+                  outputTailRef.current = outputTailRef.current.slice(-200000);
+                }
                 if (onOutputRef.current) {
                   onOutputRef.current(bytes);
                 }
               }
-            });
+            };
+            // Background tabs suspend requestAnimationFrame, so a timer backs it
+            // up; whichever runs first drains the buffer and the other no-ops.
+            requestAnimationFrame(flush);
+            setTimeout(flush, 250);
           }
 
           // Detect real interactive shell prompt
@@ -196,6 +227,7 @@ export function useV86({ onOutput, onReady, onError } = {}) {
                   }
                 }, 150);
               }
+              injectGuestPackages(emulator);
             }
           }
         });
@@ -209,6 +241,7 @@ export function useV86({ onOutput, onReady, onError } = {}) {
                 detectedShell = true;
                 setStatus('ready');
                 if (onReadyRef.current) onReadyRef.current();
+                injectGuestPackages(emulator);
               }
             }, isRestoring ? 1500 : 4500);
           }
@@ -234,6 +267,33 @@ export function useV86({ onOutput, onReady, onError } = {}) {
       emulatorRef.current.serial0_send(data);
     }
   }, []);
+
+  // Run a generated probe script in the guest and resolve with its output block.
+  // The script must print `endMarker` on its own line when it finishes.
+  const runProbe = useCallback(
+    async (script, endMarker = 'DPE-DONE', timeoutMs = 30000) => {
+      const emu = emulatorRef.current;
+      if (!emu || typeof emu.serial0_send !== 'function') {
+        throw new Error('The Linux guest is not running');
+      }
+      let base = outputTailRef.current.length;
+      emu.serial0_send(script);
+      const deadline = Date.now() + timeoutMs;
+      while (Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 250));
+        if (emulatorRef.current !== emu) {
+          throw new Error('The terminal was closed during verification');
+        }
+        const tail = outputTailRef.current;
+        if (tail.length < base) base = 0;
+        if (tail.slice(base).includes(endMarker)) {
+          return tail.slice(base);
+        }
+      }
+      throw new Error('The guest took too long to answer — keep the terminal open and try again');
+    },
+    []
+  );
 
   // Save running session state to IndexedDB
   const saveSession = useCallback(async () => {
@@ -332,6 +392,7 @@ export function useV86({ onOutput, onReady, onError } = {}) {
     start,
     stop,
     sendInput,
+    runProbe,
     restart,
     reset,
     saveSession,
