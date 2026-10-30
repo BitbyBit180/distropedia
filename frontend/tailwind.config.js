@@ -8,7 +8,12 @@ export default {
     "./node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        // code/terminal stacks stay JetBrains Mono even on Poppins pages
+        mono: ["'JetBrains Mono'", "ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
+      },
+    },
   },
   darkMode: "class",
   plugins: [heroui()],

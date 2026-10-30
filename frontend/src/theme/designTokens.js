@@ -23,6 +23,8 @@ export const CONNECTOR = 'rgba(139,148,158,0.35)'; // thin connector lines (hero
 
 export const MONO = "'JetBrains Mono', monospace, ui-monospace, SFMono-Regular, Menlo, monospace";
 
+export const SANS = "'Poppins', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif";
+
 export const RADIUS = {
   card: 14,
   panel: 8,
