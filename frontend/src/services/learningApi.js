@@ -3,7 +3,9 @@ import { getToken } from './authApi.js';
 import { LEARNING_CURRICULUM } from '../features/learning/learningData.js';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
-const LOCAL_COMPLETED_KEY = 'distropedia_completed_lessons';
+// Versioned with the syllabus: chapter ids are renumbered when the plan list
+// changes, so progress recorded against the old 30-chapter course must not carry over.
+const LOCAL_COMPLETED_KEY = 'distropedia_completed_lessons_tlcl';
 
 function getLocalCompletedLessons() {
   try {
