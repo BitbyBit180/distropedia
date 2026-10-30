@@ -8,6 +8,7 @@ import {
   parseProbeEvidence,
   PROBE_END,
 } from '../features/terminal/guestProbe.js';
+import { GUEST_UNAVAILABLE_COMMANDS } from '../features/terminal/guestPackages.js';
 import { learningApi } from '../services/learningApi.js';
 import { LEARNING_CURRICULUM } from '../features/learning/learningData.js';
 import { THEME, SANS } from '../theme/designTokens.js';
