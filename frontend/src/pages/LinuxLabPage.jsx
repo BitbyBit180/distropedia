@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { LinuxTerminal } from '../features/terminal/LinuxTerminal.jsx';
 import Navbar from '../components/Navbar.jsx';
-import { THEME, MONO } from '../theme/designTokens.js';
+import { THEME, SANS } from '../theme/designTokens.js';
 import { learningApi } from '../services/learningApi.js';
 import { useAuth } from '../hooks/useAuth.js';
 import {
@@ -60,11 +60,11 @@ export default function LinuxLabPage({ onNavigate }) {
   return (
     <div
       className="min-h-screen text-[#F0F4F8]"
-      style={{ backgroundColor: THEME.bg, fontFamily: MONO }}
+      style={{ backgroundColor: THEME.bg }}
     >
       {!isTerminalFullscreen && <Navbar currentRoute="/lab" onNavigate={onNavigate} />}
 
-      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-24 sm:pt-28 pb-12">
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-24 sm:pt-28 pb-12" style={{ fontFamily: SANS }}>
         {/* Header Banner */}
         <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#30363D] pb-5">
           <div>
@@ -110,7 +110,7 @@ export default function LinuxLabPage({ onNavigate }) {
         {/* Main Split Layout: Left = Terminal, Right = Reserved Curriculum Panels */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Left Column: Terminal Viewport */}
-          <div className="lg:col-span-8 flex flex-col gap-4">
+          <div className="lg:col-span-7 flex flex-col gap-4">
             <LinuxTerminal
               ref={terminalRef}
               height="520px"
@@ -119,7 +119,7 @@ export default function LinuxLabPage({ onNavigate }) {
           </div>
 
           {/* Right Column: Reserved Learning & Verification Areas */}
-          <div className="lg:col-span-4 flex flex-col rounded-xl border border-[#30363D] bg-[#161B22] overflow-hidden shadow-xl min-h-[570px]">
+          <div className="lg:col-span-5 flex flex-col rounded-xl border border-[#30363D] bg-[#161B22] overflow-hidden shadow-xl min-h-[570px]">
             {/* Panel Tabs */}
             <div className="flex border-b border-[#30363D] bg-[#0D1117]/60 p-1">
               {[
@@ -150,8 +150,8 @@ export default function LinuxLabPage({ onNavigate }) {
                 <div className="flex flex-col h-full">
                   {selectedLesson ? (
                     <div>
-                      <h3 className="text-sm font-bold text-white mb-2">{selectedLesson.title}</h3>
-                      <div className="text-xs text-[#C9D1D9] leading-relaxed whitespace-pre-wrap">
+                      <h3 className="text-base font-bold text-white mb-2">{selectedLesson.title}</h3>
+                      <div className="text-sm text-[#C9D1D9] leading-relaxed whitespace-pre-wrap">
                         {selectedLesson.content || selectedLesson.description}
                       </div>
                     </div>
@@ -163,7 +163,7 @@ export default function LinuxLabPage({ onNavigate }) {
                       <h4 className="text-sm font-bold text-[#F0F4F8] mb-1">
                         No Active Lesson Selected
                       </h4>
-                      <p className="text-xs text-[#8B949E] max-w-xs leading-relaxed mb-6">
+                      <p className="text-xs text-[#8B949E] max-w-sm leading-relaxed mb-6">
                         When learning plans and lessons are published through Django Admin,
                         step-by-step instructions and practical tasks will appear here.
                       </p>
@@ -201,7 +201,7 @@ export default function LinuxLabPage({ onNavigate }) {
                       <h4 className="text-sm font-bold text-[#F0F4F8] mb-1">
                         Verification Engine Ready
                       </h4>
-                      <p className="text-xs text-[#8B949E] max-w-xs leading-relaxed mb-6">
+                      <p className="text-xs text-[#8B949E] max-w-sm leading-relaxed mb-6">
                         The automated guest-verification protocol is standing by. When exercises are
                         assigned, your guest terminal state will be evaluated server-side.
                       </p>
@@ -230,7 +230,7 @@ export default function LinuxLabPage({ onNavigate }) {
                     <h4 className="text-sm font-bold text-[#F0F4F8] mb-1">
                       Learning Progress
                     </h4>
-                    <p className="text-xs text-[#8B949E] max-w-xs leading-relaxed mb-4">
+                    <p className="text-xs text-[#8B949E] max-w-sm leading-relaxed mb-4">
                       Progress is calculated and saved directly to your account in Django SQLite.
                     </p>
                     <button
