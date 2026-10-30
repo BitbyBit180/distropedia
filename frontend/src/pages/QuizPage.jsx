@@ -47,11 +47,19 @@ export default function QuizPage({ onNavigate }) {
     let cancelled = false;
     setAiState({ status: 'deciding', verdict: null, message: null });
 
-    const readable = QUIZ_QUESTIONS.map((q) => ({
-      questionId: q.id,
-      question: q.question,
-      answer: q.options[answers[q.id]]?.label || 'Skipped',
-    }));
+    const readable = QUIZ_QUESTIONS.map((q) => {
+      const opt = q.options[answers[q.id]];
+      const answerText = opt
+        ? opt.desc
+          ? `${opt.label} — ${opt.desc}`
+          : opt.label
+        : 'Skipped';
+      return {
+        questionId: q.id,
+        question: q.question,
+        answer: answerText,
+      };
+    });
 
     getAiRecommendation({ answers: readable })
       .then((json) => {
@@ -708,6 +716,21 @@ export default function QuizPage({ onNavigate }) {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.22 }}
             >
+              {QUIZ_QUESTIONS[step].category && (
+                <div
+                  style={{
+                    fontFamily: MONO,
+                    fontSize: '0.64rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.14em',
+                    textTransform: 'uppercase',
+                    color: THEME.accent,
+                    marginBottom: 6,
+                  }}
+                >
+                  {QUIZ_QUESTIONS[step].category}
+                </div>
+              )}
               <h2
                 style={{
                   fontFamily: MONO,
@@ -728,7 +751,7 @@ export default function QuizPage({ onNavigate }) {
                       key={opt.label}
                       type="button"
                       onClick={() => choose(i)}
-                      className="flex items-center transition-all"
+                      className="flex items-start transition-all"
                       style={{
                         gap: 12,
                         textAlign: 'left',
@@ -737,7 +760,7 @@ export default function QuizPage({ onNavigate }) {
                           : 'rgba(28, 34, 41, 0.55)',
                         border: `1px solid ${chosen ? `${THEME.accent}88` : LINE}`,
                         borderRadius: 12,
-                        padding: '13px 16px',
+                        padding: '12px 16px',
                         cursor: 'pointer',
                         fontFamily: MONO,
                         fontSize: '0.8rem',
@@ -751,7 +774,7 @@ export default function QuizPage({ onNavigate }) {
                       }}
                     >
                       <span
-                        className="flex items-center justify-center shrink-0"
+                        className="flex items-center justify-center shrink-0 mt-0.5"
                         style={{
                           width: 18,
                           height: 18,
@@ -762,10 +785,32 @@ export default function QuizPage({ onNavigate }) {
                       >
                         {chosen && <span style={{ width: 6, height: 6, borderRadius: 9999, background: '#fff' }} />}
                       </span>
-                      {opt.label}
+                      <div className="flex-1 min-w-0">
+                        <div
+                          style={{
+                            fontWeight: 700,
+                            color: chosen ? THEME.textMain : '#F0F4F8',
+                            fontSize: '0.82rem',
+                          }}
+                        >
+                          {opt.label}
+                        </div>
+                        {opt.desc && (
+                          <div
+                            style={{
+                              fontSize: '0.71rem',
+                              color: chosen ? 'rgba(240,244,248,0.85)' : THEME.textMuted,
+                              marginTop: 2,
+                              lineHeight: 1.45,
+                            }}
+                          >
+                            {opt.desc}
+                          </div>
+                        )}
+                      </div>
                       <ArrowRight
                         size={13}
-                        className="ml-auto shrink-0"
+                        className="ml-auto shrink-0 mt-1"
                         style={{ color: chosen ? THEME.accent : 'rgba(255,255,255,0.15)' }}
                       />
                     </button>

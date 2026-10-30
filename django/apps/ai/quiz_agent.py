@@ -49,17 +49,17 @@ def _answer_for(answers, question_id):
 # (its catalogue tagline). No invented facts — everything comes from the quiz
 # answers and the catalogue.
 def _build_explanation(winner_name, answers, winner_tagline):
-    profile = " · ".join(
-        x
-        for x in (
-            _answer_for(answers, "experience"),
-            _answer_for(answers, "use"),
-            _answer_for(answers, "effort"),
-        )
-        if x
-    )
+    parts = []
+    for q_id in ("device_type", "ram", "gpu", "use", "experience"):
+        raw = _answer_for(answers, q_id)
+        if raw and raw != "Skipped":
+            clean = raw.split(" — ")[0].split(" (")[0].strip()
+            if clean and clean not in parts:
+                parts.append(clean)
+
+    profile = " · ".join(parts)
     head = (
-        f"Based on your answers ({profile}), {winner_name} is your best match."
+        f"Based on your hardware profile and requirements ({profile}), {winner_name} is your best match."
         if profile
         else f"{winner_name} is your best match."
     )
@@ -90,7 +90,17 @@ def recommend_distro(answers=None, catalogue=None):
                 "type": "choice",
                 "instructions": {
                     "question": "Which catalogue distro is the single best match for the user described in `answers`?",
-                    "rubric": "Weigh the whole person, not just keywords: a beginner who wants gaming and proprietary drivers should get Pop!_OS or Mint, never Arch — even if they said “latest updates”. A security professional gets Kali. A tinkerer who lives in the terminal gets Arch, Gentoo, NixOS or Void. Someone reviving old hardware gets Alpine or Void.",
+                    "rubric": (
+                        "Carefully analyze both the user's intended use case and their exact computer/laptop hardware:\n"
+                        "- Low RAM (1GB-2GB) or older/low-power CPU / slow storage: Choose featherweight, lean distributions like Alpine, Void, Debian (XFCE), or Mint XFCE. Do NOT pick resource-heavy distros like Ubuntu or Fedora.\n"
+                        "- Dedicated NVIDIA GPU or Laptop with hybrid graphics: Strongly favor Pop!_OS (dedicated NVIDIA ISO and hybrid graphics switcher), Linux Mint, or Ubuntu for seamless driver installation.\n"
+                        "- Laptop users needing battery life, trackpad gestures, and Wi-Fi stability: Favor Pop!_OS, Fedora Workstation, or Ubuntu.\n"
+                        "- Gaming with modern GPU/SSD: Favor Pop!_OS, Manjaro, or Fedora.\n"
+                        "- Cybersecurity, ethical hacking, and penetration testing: Strongly favor Kali Linux.\n"
+                        "- Beginners / Windows switchers wanting ease of use & familiarity: Favor Linux Mint, Zorin OS, or Ubuntu.\n"
+                        "- Developers & programmers with modern hardware wanting fresh software: Favor Fedora, Arch, or openSUSE.\n"
+                        "- Advanced tinkerers, minimalism, or DIY control: Favor Arch Linux, NixOS, Void Linux, or Gentoo."
+                    ),
                 },
                 "criteria": criteria,
             }
