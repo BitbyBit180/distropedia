@@ -499,15 +499,8 @@ export default function CommunityPage({ onNavigate }) {
     onNavigate?.(`/community/${post.id}`);
   };
 
-  /* ---------------------------------- guard --------------------------------- */
-
-  if (!token) {
-    return <AuthPage onAuthSuccess={() => onNavigate?.('/community')} onNavigate={onNavigate} />;
-  }
-
-  const activeChannelLabel =
-    channel === 'all' ? null : channel === 'general' ? 'General' : distroMap[channel]?.name;
-
+  // channelItems must be defined before the auth guard so hooks are always
+  // called in the same order regardless of whether the user is logged in.
   const channelItems = useMemo(
     () => [
       { key: 'all', label: 'All' },
@@ -516,6 +509,15 @@ export default function CommunityPage({ onNavigate }) {
     ],
     [distros]
   );
+
+  /* ---------------------------------- guard --------------------------------- */
+
+  if (!token) {
+    return <AuthPage onAuthSuccess={() => onNavigate?.('/community')} onNavigate={onNavigate} />;
+  }
+
+  const activeChannelLabel =
+    channel === 'all' ? null : channel === 'general' ? 'General' : distroMap[channel]?.name;
 
   /* ---------------------------------- view ---------------------------------- */
 

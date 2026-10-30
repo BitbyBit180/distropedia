@@ -776,6 +776,16 @@ export default function PostDetailPage({ postId, onNavigate }) {
     setComments((prev) => filterComments(prev, (c) => c.id !== commentId));
   };
 
+  // channelItems must be defined before the auth guard so hooks are always
+  // called in the same order regardless of whether the user is logged in.
+  const channelItems = useMemo(
+    () => [
+      { key: 'general', label: 'General' },
+      ...distros.map((d) => ({ key: d.id, label: d.name, distro: d })),
+    ],
+    [distros]
+  );
+
   /* ---------------------------------- guard --------------------------------- */
 
   if (!token) {
@@ -784,13 +794,6 @@ export default function PostDetailPage({ postId, onNavigate }) {
 
   const isOwner = post && user && post.author?.id === user.id;
   const distro = post ? distroMap[post.channel] : null;
-  const channelItems = useMemo(
-    () => [
-      { key: 'general', label: 'General' },
-      ...distros.map((d) => ({ key: d.id, label: d.name, distro: d })),
-    ],
-    [distros]
-  );
   const hostname = (() => {
     if (!post?.linkUrl) return null;
     try {
