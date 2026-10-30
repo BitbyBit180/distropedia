@@ -23,7 +23,8 @@ urlpatterns = [
     # ---- admin ----
     re_path(r"^admin/", admin.site.urls),
 
-    # ---- health ----
+    # ---- root & health ----
+    re_path(r"^$", health),
     re_path(r"^api/health" + SLASH, health),
 
     # ---- flavours (lean catalogue) ----
