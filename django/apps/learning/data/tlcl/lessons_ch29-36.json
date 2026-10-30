@@ -1,0 +1,430 @@
+{
+  "lessons": [
+    {
+      "title": "Chapter 29: Flow Control: Looping with while/until",
+      "slug": "tlcl-ch29-looping-with-while-until",
+      "order": 29,
+      "is_published": true,
+      "description": "Write shell loops with while and until, control them with break and continue, and read a file line by line inside a loop.",
+      "content": "# Chapter 29: Flow Control: Looping with while/until\n\nLoops let a program repeat a series of steps until some condition is reached. This chapter introduces the shell's `while` and `until` compound commands, the `break` and `continue` commands that control flow inside a loop, and how to process a file line by line inside a loop.\n\n## Looping\n\nLife is full of repeated activities. Slicing a carrot, in pseudocode, lifts the knife, advances the carrot, and slices it, quitting when the carrot is finished; those steps form a **loop** that runs until a condition is met.\n\n## while\n\n`bash` expresses this idea with the `while` compound command:\n\n```bash\nwhile commands; do commands; done\n```\n\nLike `if`, `while` evaluates the exit status of a list of commands. As long as the exit status is zero it performs the commands inside the loop.\n\n```bash\n#!/bin/bash\n\n# while-count: display a series of numbers\n\ncount=1\n\nwhile [[ \"$count\" -le 5 ]]; do\n      echo \"$count\"\n      count=$((count + 1))\ndone\necho \"Finished.\"\n```\n\nRun, it prints `1 2 3 4 5` then `Finished.` We can wrap the menu program from the previous chapter in a `while` loop so it repeats until the user chooses to quit:\n\n```bash\n#!/bin/bash\n\n# while-menu: a menu driven system information program\n\nDELAY=3 # Number of seconds to display results\n\nwhile [[ \"$REPLY\" != 0 ]]; do\n      clear\n      cat <<- _EOF_\n            Please Select:\n\n              1. Display System Information\n              2. Display Disk Space\n              3. Display Home Space Utilization\n              0. Quit\n\n      _EOF_\n      read -p \"Enter selection [0-3] > \"\n\n      if [[ \"$REPLY\" =~ ^[0-3]$ ]]; then\n            if [[ $REPLY == 1 ]]; then\n                  echo \"Hostname: $HOSTNAME\"\n                  uptime\n                  sleep \"$DELAY\"\n            fi\n            if [[ \"$REPLY\" == 2 ]]; then\n                  df -h\n                  sleep \"$DELAY\"\n            fi\n            if [[ \"$REPLY\" == 3 ]]; then\n                  if [[ \"$(id -u)\" -eq 0 ]]; then\n                         echo \"Home Space Utilization (All Users)\"\n                         du -sh /home/*\n                  else\n                         echo \"Home Space Utilization ($USER)\"\n                         du -sh \"$HOME\"\n                  fi\n                  sleep \"$DELAY\"\n            fi\n      else\n              echo \"Invalid entry.\"\n              sleep \"$DELAY\"\n      fi\ndone\necho \"Program terminated.\"\n```\n\n## Breaking Out of a Loop\n\n`bash` provides two builtin commands to control flow inside loops. **break** immediately terminates a loop and resumes with the next statement after the loop. **continue** skips the rest of the current iteration and resumes with the next iteration. A common technique is an endless loop driven by `true`, which never ends on its own, so the programmer supplies a `break`:\n\n```bash\nwhile true; do\n      read -p \"Enter selection [0-3] > \"\n      if [[ \"$REPLY\" == 1 ]]; then\n            echo \"Hostname: $HOSTNAME\"; uptime; sleep \"$DELAY\"; continue\n      fi\n      if [[ \"$REPLY\" == 0 ]]; then\n            break\n      fi\ndone\n```\n\nThe `continue` at the end of each choice skips testing the remaining choices once one matches.\n\n## until\n\nThe **until** command is like `while`, but it continues until it receives a zero exit status instead of until it receives a non-zero one:\n\n```bash\n#!/bin/bash\n\n# until-count: display a series of numbers\n\ncount=1\n\nuntil [[ \"$count\" -gt 5 ]]; do\n      echo \"$count\"\n      count=$((count + 1))\ndone\necho \"Finished.\"\n```\n\nChoosing `while` or `until` is usually a matter of writing the clearest test.\n\n## Reading Files with Loops\n\n`while` and `until` can process standard input, so files can be read line by line. Place the redirection operator after `done`:\n\n```bash\n#!/bin/bash\n\n# while-read: read lines from a file\n\nwhile read distro version release; do\n      printf \"Distro: %s\\tVersion: %s\\tReleased: %s\\n\" \"$distro\" \"$version\" \"$release\"\ndone < distros.txt\n```\n\n`read` exits with a zero status after each line until end-of-file, when it exits non-zero and the loop ends. You can also pipe input into a loop:\n\n```bash\n#!/bin/bash\n\n# while-read2: read lines from a file\n\nsort -k 1,1 -k 2n distros.txt | while read distro version release; do\n      printf \"Distro: %s\\tVersion: %s\\tReleased: %s\\n\" \"$distro\" \"$version\" \"$release\"\ndone\n```\n\nBecause a pipe runs the loop in a subshell, variables created inside the loop are lost when it terminates.\n\nNote: on a POSIX shell such as `ash` (the guest VM default), `[[ ]]` and `=~` are bash-only. Use `[ \"$count\" -le 5 ]` for the same tests, or run scripts with `bash script.sh`.\n\n## Summary\n\n- `while` repeats its body as long as the test returns a zero exit status; `until` repeats until it does.\n- `break` ends a loop; `continue` jumps to the next iteration.\n- An endless `while true` loop is a common pattern; the programmer must add a `break`.\n- `while read ... done < file` processes a file line by line.\n- A piped loop runs in a subshell, so its variable assignments do not survive.",
+      "exercises": [
+        {
+          "title": "A while loop that counts",
+          "slug": "count-while-loop",
+          "order": 1,
+          "instructions": "Create `/root/count.sh` that uses a `while` loop to print the numbers 1 through 5, one per line, then prints `Finished.`. Keep it POSIX so it runs under the guest's `ash` shell.\n\n```bash\n#!/bin/sh\ncount=1\nwhile [ \"$count\" -le 5 ]; do\n      echo \"$count\"\n      count=$((count + 1))\ndone\necho \"Finished.\"\n```\n\nRun it:\n\n```bash\nsh /root/count.sh\n```",
+          "hint": "Use single brackets [ \"$count\" -le 5 ]; the book's [[ ]] is bash-only.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/count.sh",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Create /root/count.sh as shown in the lesson"
+            },
+            {
+              "rule_type": "command_exit_zero",
+              "target": "sh /root/count.sh",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Run: sh /root/count.sh and make sure it exits without error"
+            }
+          ]
+        },
+        {
+          "title": "Read a file line by line",
+          "slug": "read-file-with-loop",
+          "order": 2,
+          "instructions": "Create `/root/lines.sh` that reads a sample file line by line with a `while read` loop and prints each line prefixed with `line:`. Redirect the file after `done`.\n\n```bash\n#!/bin/sh\ntouch /root/sample.txt\nwhile read myline; do\n      echo \"line: $myline\"\ndone < /root/sample.txt\n```\n\nRun it:\n\n```bash\nsh /root/lines.sh\n```",
+          "hint": "Put the redirection < file after the done keyword, not inside the loop.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/lines.sh",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Create /root/lines.sh as shown"
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/lines.sh",
+              "expected_value": "while read",
+              "points_weight": 5,
+              "feedback_on_failure": "Use 'while read' with a redirection after done in /root/lines.sh"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Chapter 30: Troubleshooting",
+      "slug": "tlcl-ch30-troubleshooting",
+      "order": 30,
+      "is_published": true,
+      "description": "Recognize syntactic and logical errors, write defensive scripts that quote variables and check exit statuses, and trace a script with set -x.",
+      "content": "# Chapter 30: Troubleshooting\n\nAs scripts grow, things go wrong. This chapter looks at the two broad classes of errors, syntactic and logical, shows defensive programming habits, and demonstrates testing and debugging techniques such as tracing with `set -x`.\n\n## Syntactic Errors\n\nSyntactic errors involve mistyping shell syntax; the shell stops executing the script. We use this demonstration script:\n\n```bash\n#!/bin/bash\n\n# trouble: script to demonstrate common errors\n\nnumber=1\n\nif [ $number = 1 ]; then\n      echo \"Number is equal to 1.\"\nelse\n      echo \"Number is not equal to 1.\"\nfi\n```\n\n### Missing Quotes\n\nRemoving the closing quote from the first `echo` gives:\n\n```\n/home/me/bin/trouble: line 10: unexpected EOF while looking for matching `\"'\n/home/me/bin/trouble: line 13: syntax error: unexpected end of file\n```\n\nThe reported line numbers are later than the real mistake because `bash` keeps hunting for the closing quote until it finds one after the second `echo`.\n\n### Missing or Unexpected Tokens\n\nRemoving the `;` after the test in the `if` line gives:\n\n```\n/home/me/bin/trouble: line 9: syntax error near unexpected token `else'\n```\n\nWithout the semicolon, `then` becomes another argument to `[`, and `else` is then read out of place as a reserved word.\n\n### Unanticipated Expansions\n\nSetting `number=` (empty) causes an intermittent failure:\n\n```\n/home/me/bin/trouble: line 7: [: =: unary operator expected\n```\n\n`[ $number = 1 ]` expands to `[   = 1 ]`, which is invalid. Quoting the variable fixes it:\n\n```bash\n[ \"$number\" = 1 ]\n```\n\n> Make it a rule to always enclose variables and command substitutions in double quotes unless word splitting is needed.\n\n## Logical Errors\n\nLogical errors do not stop the script but make it do the wrong thing. Common kinds are incorrect conditional expressions, \"off by one\" counting errors in loops, and unanticipated situations such as filenames with embedded spaces.\n\n## Defensive Programming\n\nVerify assumptions by checking exit statuses. A famous disaster script:\n\n```bash\ncd $dir_name\nrm *\n```\n\nIf `dir_name` is unset, `cd` fails and `rm` deletes the current directory. Improve it step by step:\n\n```bash\ncd \"$dir_name\" && rm *\n```\n\nBetter still, test that the target is a real directory and report errors to standard error:\n\n```bash\nif [[ ! -d \"$dir_name\" ]]; then\n      echo \"No such directory: '$dir_name'\" >&2\n      exit 1\nfi\nif ! cd \"$dir_name\"; then\n      echo \"Cannot cd to '$dir_name'\" >&2\n      exit 1\nfi\nif ! rm ./*; then\n      echo \"File deletion failed. Check results\" >&2\n      exit 1\nfi\n```\n\nPrecede wildcards with `./` so a filename beginning with a hyphen is not read as an option. A POSIX portable filename uses only `A-Z a-z 0-9 . - _`.\n\n## Verifying Input and Testing\n\nIf a program accepts input it must handle anything it receives; the menu test `[[ $REPLY =~ ^[0-3]$ ]]` is a good example. For testing, replace dangerous commands with `echo` (a stub) and mark the changes so they can be found and removed:\n\n```bash\necho rm * # TESTING\n```\n\nChoose test cases that cover edge conditions: an existing directory, a nonexistent directory, and an empty variable.\n\n## Debugging\n\nIsolate the problem area by commenting out sections. Use tracing to see the actual flow of execution. Enable tracing for the whole script with `#!/bin/bash -x`, or for part of it with the `set` command:\n\n```bash\n#!/bin/bash\nnumber=1\nset -x # Turn on tracing\nif [ $number = 1 ]; then\n      echo \"Number is equal to 1.\"\nelse\n      echo \"Number is not equal to 1.\"\nfi\nset +x # Turn off tracing\n```\n\nTrace output is prefixed with `+` (the `PS4` variable); `export PS4='$LINENO + '` adds the line number. Displaying variable values with `echo \"number=$number\" # DEBUG` is useful for watching loops and arithmetic.\n\n## Summary\n\n- Syntactic errors stop the script; error messages often point past the real mistake.\n- Always quote variables and command substitutions unless you want word splitting.\n- Logical errors give wrong results; guard against off-by-one and unanticipated data.\n- Program defensively: check exit statuses, verify input, and send errors to standard error.\n- Trace with `set -x`/`set +x` or `#!/bin/bash -x`; `PS4` controls the trace prefix.\n- Test with stubs (`echo` before dangerous commands) and good test cases.",
+      "exercises": [
+        {
+          "title": "Trace a script with set -x",
+          "slug": "trace-with-set-x",
+          "order": 1,
+          "instructions": "Create `/root/trace.sh` that sets a variable, turns tracing on with `set -x`, runs a POSIX `if` test, and turns tracing off with `set +x`.\n\n```bash\n#!/bin/sh\nnumber=1\nset -x\nif [ \"$number\" = 1 ]; then\n      echo \"Number is equal to 1.\"\nelse\n      echo \"Number is not equal to 1.\"\nfi\nset +x\n```\n\nRun it:\n\n```bash\nsh /root/trace.sh\n```",
+          "hint": "Use set -x to start tracing and set +x to stop it; trace lines show on stderr prefixed with +.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_contains",
+              "target": "/root/trace.sh",
+              "expected_value": "set -x",
+              "points_weight": 5,
+              "feedback_on_failure": "Add 'set -x' to /root/trace.sh as shown in the lesson"
+            },
+            {
+              "rule_type": "command_exit_zero",
+              "target": "sh /root/trace.sh",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Run: sh /root/trace.sh and confirm it exits without error"
+            }
+          ]
+        },
+        {
+          "title": "Quote variables defensively",
+          "slug": "quote-vars-safely",
+          "order": 2,
+          "instructions": "Create `/root/safe.sh` that sets a variable to a string with a space and safely tests it inside `[ ]` by wrapping the variable in double quotes, so an empty or multi-word value never breaks the test.\n\n```bash\n#!/bin/sh\nname=\"a b c\"\nif [ \"$name\" != \"\" ]; then\n      echo \"name is not empty\"\nfi\n```\n\nRun it:\n\n```bash\nsh /root/safe.sh\n```",
+          "hint": "The whole point is the double quotes around $name inside the test brackets.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_contains",
+              "target": "/root/safe.sh",
+              "expected_value": "[ \"$name\"",
+              "points_weight": 10,
+              "feedback_on_failure": "In /root/safe.sh test the variable quoted, as in [ \"$name\" ]"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Chapter 31: Flow Control: Branching with case",
+      "slug": "tlcl-ch31-branching-with-case",
+      "order": 31,
+      "is_published": true,
+      "description": "Replace chained if tests with a case command, write patterns with wildcards and character classes, and combine alternatives with the bar operator.",
+      "content": "# Chapter 31: Flow Control: Branching with case\n\nA series of `if` tests for mutually exclusive choices is clumsy. `bash` provides the `case` compound command for multiple-choice decisions, matching a word against patterns built from the same wildcards used by pathname expansion.\n\n## The case Command\n\nThe syntax is:\n\n```bash\ncase word in\n      [pattern [| pattern]...) commands ;;]...\nesac\n```\n\nThe `case` command looks at `word` and tries to match it against each pattern. On the first match, the associated commands run and no further patterns are tested. Replacing the `if` chain in the menu program:\n\n```bash\n#!/bin/bash\n\n# case-menu: a menu driven system information program\n\nclear\necho \"\nPlease Select:\n\n1. Display System Information\n2. Display Disk Space\n3. Display Home Space Utilization\n0. Quit\n\"\nread -p \"Enter selection [0-3] > \"\n\ncase \"$REPLY\" in\n     0)     echo \"Program terminated.\"\n            exit\n            ;;\n     1)     echo \"Hostname: $HOSTNAME\"\n            uptime\n            ;;\n     2)     df -h\n            ;;\n     3)     if [[ \"$(id -u)\" -eq 0 ]]; then\n                 echo \"Home Space Utilization (All Users)\"\n                 du -sh /home/*\n            else\n                 echo \"Home Space Utilization ($USER)\"\n                 du -sh \"$HOME\"\n            fi\n            ;;\n     *)     echo \"Invalid entry\" >&2\n            exit 1\n            ;;\nesac\n```\n\n## Patterns\n\nPatterns are terminated with `)` and use pathname-expansion wildcards:\n\n```\na)              word equals a.\n[[:alpha:]])    word is a single alphabetic character.\n???             word is exactly three characters long.\n*.txt)          word ends with .txt.\n*)              matches any value (good practice as the last pattern).\n```\n\nAn example using classes and ranges:\n\n```bash\n#!/bin/bash\nread -p \"enter word > \"\ncase \"$REPLY\" in\n     [[:alpha:]])   echo \"is a single alphabetic character.\" ;;\n     [ABC][0-9])    echo \"is A, B, or C followed by a digit.\" ;;\n     ???)           echo \"is three characters long.\" ;;\n     *.txt)         echo \"is a word ending in '.txt'\" ;;\n     *)             echo \"is something else.\" ;;\nesac\n```\n\nThe vertical bar combines patterns into an \"or\", handy for matching both cases of a letter. Changing the menu to letters:\n\n```bash\ncase \"$REPLY\" in\n    q|Q)   echo \"Program terminated.\"; exit ;;\n    a|A)   echo \"Hostname: $HOSTNAME\"; uptime ;;\n    b|B)   df -h ;;\n    c|C)   # ... home usage ...\n    *)     echo \"Invalid entry\" >&2; exit 1 ;;\nesac\n```\n\n## Performing Multiple Actions\n\nIn `bash` before 4.0, a `case` terminated after one match. A `case4-1` character test therefore only reported the first matching class. Modern bash adds the `;;&` notation, which continues testing later patterns instead of stopping:\n\n```bash\ncase \"$REPLY\" in\n     [[:upper:]])   echo \"'$REPLY' is upper case.\" ;;&\n     [[:lower:]])   echo \"'$REPLY' is lower case.\" ;;&\n     [[:alpha:]])   echo \"'$REPLY' is alphabetic.\" ;;&\n     [[:digit:]])   echo \"'$REPLY' is a digit.\" ;;&\nesac\n```\n\nRunning `case4-2` with `a` prints that it is lower case, alphabetic, a visible character, and a hexadecimal digit.\n\nNote: `case`, `[[:class:]]` patterns and `*)` are POSIX and run fine under the guest's `ash`; only `;;&` is bash 4+.\n\n## Summary\n\n- `case word in pattern) commands ;; ... esac` handles multiple-choice decisions.\n- Patterns use pathname wildcards and are ended by `)`.\n- `*)` matches anything and is a good final catch-all.\n- `|` combines patterns into an \"or\", e.g. `q|Q`.\n- `;;&` (bash 4+) keeps testing further patterns after a match.",
+      "exercises": [
+        {
+          "title": "A case-based menu",
+          "slug": "case-menu-script",
+          "order": 1,
+          "instructions": "Create `/root/menu.sh` that uses a POSIX `case` on the first argument (`$1`) so it runs without keyboard input. Choices: `1` prints `System info`, `2` prints `Disk space`, `0` prints `Bye`, anything else prints `Invalid`.\n\n```bash\n#!/bin/sh\ncase \"$1\" in\n  1) echo \"System info\" ;;\n  2) echo \"Disk space\" ;;\n  0) echo \"Bye\" ;;\n  *) echo \"Invalid\" ;;\nesac\n```\n\nRun it:\n\n```bash\nsh /root/menu.sh 1\n```",
+          "hint": "Use case \"$1\" in ... esac and end each action with ;;.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_contains",
+              "target": "/root/menu.sh",
+              "expected_value": "esac",
+              "points_weight": 5,
+              "feedback_on_failure": "Close the case block with esac in /root/menu.sh"
+            },
+            {
+              "rule_type": "command_exit_zero",
+              "target": "sh /root/menu.sh 1",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Run: sh /root/menu.sh 1"
+            }
+          ]
+        },
+        {
+          "title": "Character-class patterns",
+          "slug": "case-pattern-ranges",
+          "order": 2,
+          "instructions": "Create `/root/wordtype.sh` that classifies `$1` with `case` patterns: `???)` means three characters, `*.txt)` means a name ending in .txt, and `*)` is the fallback.\n\n```bash\n#!/bin/sh\ncase \"$1\" in\n  ???)   echo \"three characters\" ;;\n  *.txt) echo \"a text file\" ;;\n  *)     echo \"something else\" ;;\nesac\n```\n\nRun it:\n\n```bash\nsh /root/wordtype.sh abc\n```",
+          "hint": "The ??? pattern matches exactly three characters; remember the *) catch-all.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/wordtype.sh",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Create /root/wordtype.sh as shown"
+            },
+            {
+              "rule_type": "command_exit_zero",
+              "target": "sh /root/wordtype.sh abc",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Run: sh /root/wordtype.sh abc"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Chapter 32: Positional Parameters",
+      "slug": "tlcl-ch32-positional-parameters",
+      "order": 32,
+      "is_published": true,
+      "description": "Read command line arguments with $1-$9, count them with $#, walk them with shift, and pass them on safely using \"$@\".",
+      "content": "# Chapter 32: Positional Parameters\n\nScripts so far could not read their own command line. The shell exposes the words on the command line through **positional parameters**, letting programs accept arguments and options.\n\n## Accessing the Command Line\n\nThe positional parameters are named `$0` through `$9`. `$0` always holds the pathname of the program itself; `$1`-`$9` hold the first through ninth arguments:\n\n```bash\n#!/bin/bash\n\n# posit-param: script to view command line parameters\n\necho \"\n\\$0 = $0\n\\$1 = $1\n\\$2 = $2\n\\$3 = $3\n\"\n```\n\nRun with arguments, `$1`, `$2`, `$3` are filled; empty ones show nothing. You can reach more than nine parameters with braces, e.g. `${10}`, `${55}`.\n\n## Determining the Number of Arguments\n\nThe special variable `$#` holds the number of arguments on the command line.\n\n## shift - Getting Access to Many Arguments\n\n`shift` moves every parameter down one: `$2` becomes `$1`, `$3` becomes `$2`, and so on, and `$#` is reduced by one. `$0` never changes. Combined with a loop this processes any number of arguments:\n\n```bash\n#!/bin/bash\n\n# posit-param2: script to display all arguments\n\ncount=1\n\nwhile [[ $# -gt 0 ]]; do\n      echo \"Argument $count = $1\"\n      count=$((count + 1))\n      shift\ndone\n```\n\nEven without `shift`, useful tools are possible. A simple file-information program uses `$1` and derives its own name from `$0`:\n\n```bash\n#!/bin/bash\n\n# file-info: simple file information program\n\nPROGNAME=\"$(basename \"$0\")\"\n\nif [[ -e \"$1\" ]]; then\n      echo -e \"\\nFile Type:\"\n      file \"$1\"\n      echo -e \"\\nFile Status:\"\n      stat \"$1\"\nelse\n      echo \"$PROGNAME: usage: $PROGNAME file\" >&2\n      exit 1\nfi\n```\n\n`basename` strips the leading path from `$0`, so the usage message adapts if the script is renamed. Positional parameters also pass arguments into shell functions, where the `FUNCNAME` variable tracks the function's name.\n\n## Handling Positional Parameters en Masse\n\nTwo special parameters expand to the whole list:\n\n```\n$*   All parameters. Quoted as \"$*\" it becomes ONE string,\n     words joined by the first character of IFS.\n$@   All parameters. Quoted as \"$@\" each parameter stays a\n     separate word, as if individually double-quoted.\n```\n\nA demonstration:\n\n```bash\n#!/bin/bash\nprint_params () { echo \"\\$1 = $1\"; echo \"\\$2 = $2\"; }\npass_params () {\n      echo '$* :';   print_params $*\n      echo '\"$*\" :'; print_params \"$*\"\n      echo '$@ :';   print_params $@\n      echo '\"$@\" :'; print_params \"$@\"\n}\npass_params \"word\" \"words with spaces\"\n```\n\nOnly `\"$@\"` preserves the integrity of each parameter (here a two-word result), so it is the most useful form and should be used unless there is a reason not to.\n\n## A More Complete Application\n\nThe classic pattern for command line options is a `while` loop over the parameters with a `case` inside, and a `shift` at the bottom:\n\n```bash\n# process command line options\nwhile [[ -n \"$1\" ]]; do\n      case \"$1\" in\n            -f | --file)        shift; filename=\"$1\" ;;\n            -i | --interactive) interactive=1 ;;\n            -h | --help)        usage; exit ;;\n            *)                  usage >&2; exit 1 ;;\n      esac\n      shift\ndone\n```\n\nThe loop runs while `$1` is not empty. When `-f` is seen, an extra `shift` advances `$1` to the filename it takes. The rest of `sys_info_page` turns report code into shell functions and redirects `write_html_page` to a chosen file after testing it is writable with `touch`.\n\nNote: under `ash`, `$1`-`$9`, `$#`, `shift`, `$*` and `$@` all work. Replace `[[ ... ]]` with `[ ... ]` for POSIX, e.g. `while [ $# -gt 0 ]`.\n\n## Summary\n\n- Positional parameters `$1`-`$9` (and `${10}` ...) hold the command line words; `$0` is the program.\n- `$#` is the argument count.\n- `shift` moves parameters down so a loop can process any number.\n- `basename \"$0\"` gives a rename-proof program name.\n- `\"$@\"` keeps each parameter separate and is the safest way to pass them on.\n- Option parsing is a `while` loop with `case` and `shift`.",
+      "exercises": [
+        {
+          "title": "Print every argument with shift",
+          "slug": "shift-args-loop",
+          "order": 1,
+          "instructions": "Create `/root/showargs.sh` that uses a POSIX `while [ $# -gt 0 ]` loop with `shift` to print each argument as `Argument = <value>`.\n\n```bash\n#!/bin/sh\nwhile [ $# -gt 0 ]; do\n      echo \"Argument = $1\"\n      shift\ndone\n```\n\nRun it:\n\n```bash\nsh /root/showargs.sh a b c\n```",
+          "hint": "shift moves $2 into $1 and lowers $#; loop while [ $# -gt 0 ].",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_contains",
+              "target": "/root/showargs.sh",
+              "expected_value": "shift",
+              "points_weight": 5,
+              "feedback_on_failure": "Use shift inside the loop in /root/showargs.sh"
+            },
+            {
+              "rule_type": "command_exit_zero",
+              "target": "sh /root/showargs.sh a b c",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Run: sh /root/showargs.sh a b c"
+            }
+          ]
+        },
+        {
+          "title": "Use $@ to pass arguments on",
+          "slug": "pass-args-with-atsign",
+          "order": 2,
+          "instructions": "Create `/root/firstarg.sh` that prints the argument count with `$#` and then echoes all arguments preserved with `\"$@\"`.\n\n```bash\n#!/bin/sh\necho \"count=$#\"\necho \"$@\"\n```\n\nRun it:\n\n```bash\nsh /root/firstarg.sh hello there\n```",
+          "hint": "$# is the count and \"$@\" keeps each word separate.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_contains",
+              "target": "/root/firstarg.sh",
+              "expected_value": "$@",
+              "points_weight": 5,
+              "feedback_on_failure": "Echo \"$@\" in /root/firstarg.sh"
+            },
+            {
+              "rule_type": "command_exit_zero",
+              "target": "sh /root/firstarg.sh hello there",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Run: sh /root/firstarg.sh hello there"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Chapter 33: Flow Control: Looping with for",
+      "slug": "tlcl-ch33-looping-with-for",
+      "order": 33,
+      "is_published": true,
+      "description": "Loop over a list of words, brace expansions, globbed filenames, or command output with for, and understand the bash-only C-style numeric form.",
+      "content": "# Chapter 33: Flow Control: Looping with for\n\nThe `for` loop differs from `while`/`until` by processing **sequences**. `bash` offers two forms: the traditional shell form and a C-language form.\n\n## for: Traditional Shell Form\n\n```bash\nfor variable [in words]; do\n      commands\ndone\n```\n\n`variable` takes each item of `words` in turn; `commands` run on every iteration. It is handy on the command line:\n\n```bash\nfor i in A B C D; do echo $i; done\n```\n\nThe real power is in how the list of words is created. **Brace expansion** generates a range:\n\n```bash\nfor i in {A..D}; do echo $i; done\n```\n\n**Pathname expansion** gives a clean file list, but check that the glob matched:\n\n```bash\nfor i in distros*.txt; do\n      if [[ -e \"$i\" ]]; then\n            echo \"$i\"\n      fi\ndone\n```\n\n**Command substitution** can also build the list. This program finds the longest word in a file using `strings` (a GNU binutils tool):\n\n```bash\n#!/bin/bash\n\n# longest-word: find longest string in a file\n\nwhile [[ -n \"$1\" ]]; do\n      if [[ -r \"$1\" ]]; then\n            max_word=\n            max_len=0\n            for i in $(strings \"$1\"); do\n                  len=\"$(echo -n \"$i\" | wc -c)\"\n                  if (( len > max_len )); then\n                        max_len=\"$len\"\n                        max_word=\"$i\"\n                  fi\n            done\n            echo \"$1: '$max_word' ($max_len characters)\"\n      fi\n      shift\ndone\n```\n\nHere `$(strings \"$1\")` is deliberately unquoted so word splitting produces the list. If `in words` is omitted, `for` iterates over the positional parameters:\n\n```bash\n#!/bin/bash\n# longest-word2: find longest string in a file\nfor i; do\n      if [[ -r \"$i\" ]]; then\n            max_word=\n            max_len=0\n            for j in $(strings \"$i\"); do\n                  len=\"$(echo -n \"$j\" | wc -c)\"\n                  if (( len > max_len )); then\n                        max_len=\"$len\"\n                        max_word=\"$j\"\n                  fi\n            done\n            echo \"$i: '$max_word' ($max_len characters)\"\n      fi\ndone\n```\n\nThe loop variable is traditionally `i` (then `j`, `k`), a habit inherited from Fortran.\n\n## for: C Language Form\n\nRecent bash adds a second form resembling C:\n\n```bash\nfor (( expression1; expression2; expression3 )); do\n      commands\ndone\n```\n\nIt is equivalent to running `expression1` to initialize, testing `expression2` before each pass, and running `expression3` at the end of each pass:\n\n```bash\n#!/bin/bash\n\n# simple_counter: demo of C style for command\n\nfor (( i=0; i<5; i=i+1 )); do\n      echo $i\ndone\n```\n\nThis prints `0 1 2 3 4`, useful whenever a numeric sequence is needed.\n\nThe chapter closes by upgrading `report_home_space` to use a `for` loop over `$dir_list`, computing per-directory file and directory counts with `find | wc -l` and `du -sh | cut -f 1`, and formatting with `printf`.\n\nNote: brace expansion `{A..D}`, the `(( ))` arithmetic test, and the C-style `for (( ))` are **bash-only**. Under the guest's `ash`, use an explicit list (`for i in 1 2 3 4 5`) or a `while [ \"$i\" -lt 5 ]` counter instead.\n\n## Summary\n\n- `for variable in words; do ...; done` iterates over a list of words.\n- The list can come from brace expansion, pathname globbing, or command substitution.\n- Guard a glob by testing that the file exists (`[[ -e \"$i\" ]]`).\n- Omitting `in words` makes `for` loop over the positional parameters (`for i; do`).\n- The C-style `for (( init; test; step ))` is bash-only and best for numeric sequences.",
+      "exercises": [
+        {
+          "title": "Loop over a list",
+          "slug": "for-over-list",
+          "order": 1,
+          "instructions": "Create `/root/forlist.sh` that uses a POSIX `for` loop to print each of four names on its own line. Since the guest shell is `ash`, list the words explicitly instead of using `{a..d}`.\n\n```bash\n#!/bin/sh\nfor i in apple banana cherry date; do\n      echo \"$i\"\ndone\n```\n\nRun it:\n\n```bash\nsh /root/forlist.sh\n```",
+          "hint": "for i in word1 word2 ...; do ... done is POSIX; brace ranges are bash-only.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_contains",
+              "target": "/root/forlist.sh",
+              "expected_value": "for i in",
+              "points_weight": 5,
+              "feedback_on_failure": "Use a 'for i in' loop in /root/forlist.sh"
+            },
+            {
+              "rule_type": "command_exit_zero",
+              "target": "sh /root/forlist.sh",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Run: sh /root/forlist.sh"
+            }
+          ]
+        },
+        {
+          "title": "Loop over globbed files",
+          "slug": "for-over-glob",
+          "order": 2,
+          "instructions": "Create `/root/forfiles.sh` that loops over every .txt file in `/root` with a glob and prints its name, testing that it exists first so a failed glob is ignored.\n\n```bash\n#!/bin/sh\ntouch /root/notes.txt\nfor f in /root/*.txt; do\n      if [ -e \"$f\" ]; then\n            echo \"$f\"\n      fi\ndone\n```\n\nRun it:\n\n```bash\nsh /root/forfiles.sh\n```",
+          "hint": "Wrap the body in [ -e \"$f\" ] so a glob that matches nothing is skipped.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/forfiles.sh",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Create /root/forfiles.sh as shown"
+            },
+            {
+              "rule_type": "command_exit_zero",
+              "target": "sh /root/forfiles.sh",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Run: sh /root/forfiles.sh"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Chapter 34: Strings and Numbers",
+      "slug": "tlcl-ch34-strings-and-numbers",
+      "order": 34,
+      "is_published": true,
+      "description": "Manipulate strings with parameter expansions, do integer arithmetic with $(( )), and reach for bc when you need floating-point numbers.",
+      "content": "# Chapter 34: Strings and Numbers\n\nPrograms work with data at smaller units than files. This chapter covers shell **parameter expansions** for strings and **arithmetic expansion** for numbers, plus the external `bc` calculator for floating-point math.\n\n## Parameter Expansion\n\nThe simplest expansion is a variable, optionally braced when adjacent text would confuse the shell: `${a}_file`. Positional parameters above nine use braces: `${11}`.\n\n### Managing Empty Variables\n\n```bash\n${parameter:-word}   # word if parameter unset or empty\n${parameter:=word}   # also assigns word to parameter (not for special params)\n${parameter:?word}   # exit with error word if empty\n${parameter:+word}   # word only if parameter is set and non-empty\n```\n\n```bash\nfoo=\necho ${foo:-\"substitute value if unset\"}   # prints the substitute\n```\n\n`${!prefix*}` returns the names of variables starting with `prefix`, e.g. `${!BASH*}`.\n\n### String Operations\n\n```bash\n${#parameter}                 # length of the string\n${parameter:offset:length}    # substring (bash-only; negative offset needs a space)\n${parameter#pattern}          # remove shortest leading match   (## longest)\n${parameter%pattern}          # remove shortest trailing match  (%% longest)\n${parameter/pattern/string}   # replace first match (// all, /# start, /% end)\n```\n\n```bash\nfoo=file.txt.zip\necho ${foo#*.}     # txt.zip   (shortest)\necho ${foo##*.}    # zip       (longest)\necho ${foo%.*}     # file.txt\necho ${foo%%.*}    # file\nfoo=JPG.JPG\necho ${foo//JPG/jpg}   # jpg.jpg\n```\n\nThese expansions replace external commands like `sed` and `cut` and are far faster. Rewriting `longest-word` to use `${#j}` instead of `$(echo -n $j | wc -c)` cut a run from 3.618s to 0.060s under `time`.\n\n### Case Conversion\n\n`declare -u upper` and `declare -l lower` force a variable to upper/lowercase. Four expansions do the same per use (bash-only):\n\n```bash\n${parameter,,}   all lowercase\n${parameter,}    first char lowercase\n${parameter^^}   all uppercase\n${parameter^}    first char uppercase (capitalize)\n```\n\n## Arithmetic Evaluation and Expansion\n\nArithmetic expansion uses `$((expression))`; the `(( ))` compound command does truth tests. Integers may be written in other bases: `0number` octal, `0xnumber` hex, `base#number`.\n\n```\nOperators:  +  -  *  / (integer division)  ** (power)  % (remainder)\nAssignment: = += -= *= /= %=  and ++ / -- (pre/post increment)\nBitwise:    ~ << >> & | ^\nLogic:      <= >= < > == != && ||  and expr1?expr2:expr3 (ternary)\n```\n\n```bash\necho $(( 5 / 2 ))   # 2\necho $(( 5 % 2 ))   # 1\necho $((0xff))      # 255\nfor ((i = 0; i <= 20; ++i)); do\n      if (( (i % 5) == 0 )); then printf \"<%d> \" \"$i\"; else printf \"%d \" \"$i\"; fi\ndone\n```\n\nIn `(( ))` a value of zero is false and non-zero is true; `=` assigns while `==` compares.\n\n## bc - An Arbitrary Precision Calculator\n\nThe shell does only integer math; for floating point use `bc`. A bc script uses C-style `/* */` comments and runs with `bc -q file.bc`, `bc < file.bc`, or via a **here string** `bc <<< \"2+2\"`. The `scale` variable sets precision. A loan-payment script:\n\n```bash\n#!/bin/bash\n\n# loan-calc: script to calculate monthly loan payments\n\nPROGNAME=\"${0##*/}\"\nusage () { cat <<- EOF\nUsage: $PROGNAME PRINCIPAL INTEREST MONTHS\nEOF\n}\n\nif (($# != 3)); then usage; exit 1; fi\nprincipal=$1\ninterest=$2\nmonths=$3\n\nbc <<- EOF\n      scale = 10\n      i = $interest / 12\n      p = $principal\n      n = $months\n      a = p * ((i * ((1 + i) ^ n)) / (((1 + i) ^ n) - 1))\n      print a, \"\\n\"\nEOF\n```\n\nNote: `bc` may be absent on the guest. `$(( ))` integer math and `${#var}` lengths are POSIX and work under `ash`; substring `${var:off:len}`, case-conversion, `(( ))`, `<<<` and base prefixes are bash-only (run with `bash`).\n\n## Summary\n\n- `${parameter:-word}`, `:?`, `:=`, `:+` handle empty and missing variables.\n- `${#var}`, `${var/pat/str}`, `${var#pat}` and `${var%pat}` manipulate strings faster than external tools.\n- Case conversion: `declare -u/-l` and `${var^^}`, `${var,,}` (bash-only).\n- `$(( ))` does integer arithmetic, including bases, `++/--`, bitwise and ternary operators.\n- For floating point, pipe a script to `bc` and set `scale`; here strings pass it easily.",
+      "exercises": [
+        {
+          "title": "String length and integer math",
+          "slug": "string-length-arithmetic",
+          "order": 1,
+          "instructions": "Create `/root/math.sh` that prints the length of a string with `${#s}` and computes a product with POSIX `$(( ))` arithmetic, then a formatted line with `printf`.\n\n```bash\n#!/bin/sh\ns=\"hello\"\necho \"length=${#s}\"\nn=$(( 6 * 7 ))\necho \"product=$n\"\nprintf \"result: %d\\n\" \"$n\"\n```\n\nRun it:\n\n```bash\nsh /root/math.sh\n```",
+          "hint": "${#s} is POSIX; $(( )) arithmetic and printf work under ash.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_contains",
+              "target": "/root/math.sh",
+              "expected_value": "$((",
+              "points_weight": 5,
+              "feedback_on_failure": "Use $(( )) arithmetic in /root/math.sh"
+            },
+            {
+              "rule_type": "command_exit_zero",
+              "target": "sh /root/math.sh",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Run: sh /root/math.sh"
+            }
+          ]
+        },
+        {
+          "title": "Replace text with parameter expansion",
+          "slug": "replace-with-expansion",
+          "order": 2,
+          "instructions": "Create `/root/rename.sh` that removes a trailing extension from a filename with the POSIX `${var%pattern}` expansion and prints the base name.\n\n```bash\n#!/bin/sh\nf=\"report.txt\"\necho \"${f%.txt}\"\n```\n\nRun it:\n\n```bash\nsh /root/rename.sh\n```",
+          "hint": "${f%.txt} strips the shortest trailing .txt; the bash-only ${var/pat/str} is not needed here.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_contains",
+              "target": "/root/rename.sh",
+              "expected_value": "${f%",
+              "points_weight": 10,
+              "feedback_on_failure": "Use the ${f%...} trailing-match removal expansion in /root/rename.sh"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Chapter 35: Arrays",
+      "slug": "tlcl-ch35-arrays",
+      "order": 35,
+      "is_published": true,
+      "description": "Understand bash indexed and associative arrays and their expansions, and reach for a POSIX-safe list technique when the shell lacks arrays.",
+      "content": "# Chapter 35: Arrays\n\nScalar variables hold one value; an **array** holds many. `bash` supports one-dimensional arrays (and, from version 4, associative arrays). Array support first appeared in bash 2; the original `sh` had none.\n\n## Creating an Array\n\nElements are addressed by an index called a **subscript**, starting at zero. An array is created simply by assigning to an element:\n\n```bash\na[1]=foo\necho ${a[1]}      # braces are required to avoid pathname expansion\n```\n\nOr declare it explicitly: `declare -a a`.\n\n## Assigning Values\n\nSingle element: `name[subscript]=value`. Several at once:\n\n```bash\ndays=(Sun Mon Tue Wed Thu Fri Sat)\ndays=([0]=Sun [1]=Mon [2]=Tue [3]=Wed [4]=Thu [5]=Fri [6]=Sat)\n```\n\n## Accessing Elements\n\nThe `hours` script counts files by the hour they were last modified, using an array indexed 0-23:\n\n```bash\n#!/bin/bash\n\n# hours: script to count files by modification time\n\nusage () { echo \"usage: ${0##*/} directory\" >&2; }\n\nif [[ ! -d \"$1\" ]]; then usage; exit 1; fi\n\n# Initialize array\nfor i in {0..23}; do hours[i]=0; done\n\n# Collect data\nfor i in $(stat -c %y \"$1\"/* | cut -c 12-13); do\n      j=\"${i#0}\"\n      ((++hours[j]))\n      ((++count))\ndone\n\n# Display data\necho -e \"Hour\\tFiles\\tHour\\tFiles\"\necho -e \"----\\t-----\\t----\\t-----\"\nfor i in {0..11}; do\n      j=$((i + 12))\n      printf \"%02d\\t%d\\t%02d\\t%d\\n\" \"$i\" \"${hours[i]}\" \"$j\" \"${hours[j]}\"\ndone\nprintf \"\\nTotal files = %d\\n\" $count\n```\n\n## Array Operations\n\n```bash\n${a[*]}     all elements, one word when quoted\n${a[@]}     all elements, separate words when quoted  (usually best)\n${#a[@]}    number of elements in the array\n${#a[100]}  length of one element\n${!a[@]}    the list of subscripts actually in use\na+=(x y)    append values to the end of the array\nunset a     delete the whole array; unset 'a[2]' deletes one element\n```\n\nAn element exists only if it was assigned, so `a[100]=foo` reports `${#a[@]}` as 1. Note that `foo=` (empty assignment) does NOT clear an array - only element zero is emptied. To sort an array, feed it through a pipeline:\n\n```bash\na=(f e d c b a)\na_sorted=($(for i in \"${a[@]}\"; do echo $i; done | sort))\necho \"${a_sorted[@]}\"\n```\n\n## Associative Arrays\n\n`bash` 4.0+ supports arrays indexed by strings. They must be created with `declare -A`:\n\n```bash\ndeclare -A colors\ncolors[\"red\"]=\"#ff0000\"\ncolors[\"green\"]=\"#00ff00\"\necho ${colors[\"blue\"]}\n```\n\nArrays and loops pair naturally, especially with `for (( expr; expr; expr ))`.\n\nNote: indexed arrays, `declare -a/-A`, `${a[@]}`, `${!a[@]}`, `+=` append and `(( ))` are all **bash-only**. The guest's `ash` has no arrays - use `set -- v1 v2 v3` to hold a list and iterate `for x in \"$@\"`, or run the array scripts with `bash /root/script.sh` if bash is installed.\n\n## Summary\n\n- An array holds multiple values addressed by a zero-based subscript.\n- Create one by assignment or with `declare -a`; assign many at once with `name=(v1 v2 ...)`.\n- `${a[@]}` (quoted) yields each element as a separate word; `${#a[@]}` counts elements.\n- `${!a[@]}` lists used subscripts; `a+=(...)` appends; `unset a` deletes.\n- Associative arrays (`declare -A`) use string indexes and need bash 4+.\n- Everything here is bash-only; POSIX `sh`/`ash` lacks arrays.",
+      "exercises": [
+        {
+          "title": "A bash array, guarded for the guest",
+          "slug": "bash-array-guarded",
+          "order": 1,
+          "instructions": "Bash indexed arrays are the subject of this chapter, but this practice guest runs BusyBox `ash` as `/bin/sh` and ships no `bash`, so the array form below is reference only - write the POSIX version into `/root/arr.sh` and run that.\n\n```bash\ncat > /root/arr.sh << 'EOF'\n#!/bin/sh\nset -- red green blue\necho \"$@\"\necho \"count=$#\"\nEOF\nchmod 755 /root/arr.sh\nsh /root/arr.sh\n```\n\nFor comparison, the bash-only original that `ash` cannot parse:\n\n```bash\n#!/bin/bash\na=(red green blue)\necho \"${a[@]}\"\necho \"count=${#a[@]}\"\n```\n\n`set --` replaces the positional parameters, which is the portable stand-in for an indexed array: `\"$@\"` expands to every element and `$#` counts them.",
+          "hint": "Write the `set --` version into /root/arr.sh; this guest has no bash, so the array form is reference only.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/arr.sh",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Create /root/arr.sh as shown (bash array or POSIX set -- version)"
+            },
+            {
+              "rule_type": "command_exit_zero",
+              "target": "sh /root/arr.sh",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Run: sh /root/arr.sh (use the set -- version for ash)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Chapter 36: Exotica",
+      "slug": "tlcl-ch36-exotica",
+      "order": 36,
+      "is_published": true,
+      "description": "Group commands and subshells, redirect whole blocks, handle signals with trap, run jobs in the background with wait, and connect processes with a named pipe.",
+      "content": "# Chapter 36: Exotica\n\nThe final chapter tours a handful of `bash` features that are less common but handy for particular problems: grouping commands and subshells, process substitution, signal traps, asynchronous execution, and named pipes.\n\n## Group Commands and Subshells\n\n`bash` runs a set of commands together in one of two ways:\n\n```bash\n{ command1; command2; }     # group command\n( command1; command2 )      # subshell\n```\n\nThe difference matters: a group command runs in the **current** shell, so variable assignments survive; a subshell runs in a child copy whose environment is thrown away. Group commands are therefore faster and use less memory, and are preferred unless isolation is wanted. Both manage redirection as a unit:\n\n```bash\n{ ls -l; echo \"Listing of foo.txt\"; cat foo.txt; } > output.txt\n(ls -l; echo \"Listing of foo.txt\"; cat foo.txt) > output.txt\n{ ls -l; echo \"Listing of foo.txt\"; cat foo.txt; } | lpr\n```\n\nNote the braces need spaces around them and a terminating `;` before `}`. The `array-2` script ties this together with an associative array to tally file owners, wrapping each reporting loop in `{ ... } | sort`.\n\n## Process Substitution\n\nBecause pipeline stages run in subshells, `echo \"foo\" | read` leaves `$REPLY` empty - the `read` happened in a subshell that then died. **Process substitution** works around this by treating a command's output as a file:\n\n```bash\n<(list)   # output of list as a file\n>(list)   # input to list as a file\n```\n\n```bash\nread < <(echo \"foo\")\necho $REPLY\n```\n\nThe expansion is a real filename; `echo <(echo \"foo\")` prints something like `/dev/fd/63`. A classic use is a `read` loop over a command's output without losing variables:\n\n```bash\n#!/bin/bash\n\n# pro-sub: demo of process substitution\n\nwhile read attr links owner group size date time filename; do\n      cat << EOF\nFilename:   $filename\nSize:       $size\nOwner:      $owner\nGroup:      $group\nModified:   $date $time\nLinks:      $links\nEOF\ndone < <(ls -l | tail -n +2)\n```\n\n## Traps\n\nScripts can respond to signals with the `trap` builtin:\n\n```bash\ntrap argument signal [signal...]\n```\n\nA simple example prints a message instead of stopping on ctrl-C:\n\n```bash\n#!/bin/bash\n# trap-demo: simple signal handling demo\ntrap \"echo 'I am ignoring you.'\" SIGINT SIGTERM\nfor i in {1..5}; do\n      echo \"Iteration $i of 5\"\n      sleep 5\ndone\n```\n\nIt is cleaner to trap to a shell function, and each handler should usually `exit`:\n\n```bash\n#!/bin/bash\nexit_on_signal_SIGINT () { echo \"Script interrupted.\" 2>&1; exit 0; }\nexit_on_signal_SIGTERM () { echo \"Script terminated.\" 2>&1; exit 0; }\ntrap exit_on_signal_SIGINT SIGINT\ntrap exit_on_signal_SIGTERM SIGTERM\n```\n\nSignal handlers are often used to delete temporary files. Create unpredictable names with `mktemp /tmp/foobar.$$.XXXXXXXXXX` rather than `$RANDOM` alone.\n\n## Asynchronous Execution with wait\n\nA script can run child scripts in the background with `&`. The `wait` command pauses the parent until a given PID finishes. `$!` holds the PID of the last background job:\n\n```bash\nasync-child &\npid=$!\n# ... parent keeps working ...\nwait \"$pid\"\n```\n\n## Named Pipes\n\nA **named pipe** (FIFO) connects two processes through a filesystem entry, created with `mkfifo`:\n\n```bash\nmkfifo pipe1\nls -l > pipe1      # blocks until a reader attaches\ncat < pipe1        # receives the ls output\n```\n\n`process1 > named_pipe` plus `process2 < named_pipe` behaves like `process1 | process2`.\n\nNote: group commands `{ ...; }`, subshells `( ... )`, ordinary heredocs (`<< EOF`), `trap`, `wait`, `$!` and `mkfifo` all work under the guest's `ash`. Process substitution `<(...)`, here strings `<<<`, and brace ranges `{1..5}` are **bash-only**.\n\n## Summary\n\n- `{ cmds; }` groups in the current shell; `( cmds )` groups in a subshell that discards variable changes - prefer group commands when it does not matter.\n- Group commands and subshells let you redirect or pipe a whole set of commands at once.\n- Process substitution `<(list)` avoids the lost-variable problem of `read` in a pipeline (bash-only).\n- `trap command SIGNAL` lets a script handle signals, e.g. to clean up temporary files.\n- Run jobs with `&`, record `$!`, and synchronize with `wait`.\n- `mkfifo` creates a named pipe so two processes can talk like `process1 | process2`.",
+      "exercises": [
+        {
+          "title": "Redirect a group command",
+          "slug": "group-command-redirect",
+          "order": 1,
+          "instructions": "Create `/root/group.sh` that uses a POSIX group command `{ ...; }` to send the output of two commands to one file. Remember the spaces around the braces and the `;` before the closing brace.\n\n```bash\n#!/bin/sh\n{ echo \"first\"; echo \"second\"; } > /root/groupout.txt\n```\n\nRun it:\n\n```bash\nsh /root/group.sh\n```",
+          "hint": "A group command needs a space after { and a ; before }.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_contains",
+              "target": "/root/group.sh",
+              "expected_value": "{ ",
+              "points_weight": 5,
+              "feedback_on_failure": "Wrap the commands in a group command { ...; } in /root/group.sh"
+            },
+            {
+              "rule_type": "command_exit_zero",
+              "target": "sh /root/group.sh",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Run: sh /root/group.sh"
+            }
+          ]
+        },
+        {
+          "title": "Set a trap",
+          "slug": "set-a-trap",
+          "order": 2,
+          "instructions": "Create `/root/trap.sh` that installs a POSIX `trap` to print a message when the script exits, prints a line, and finishes cleanly (so the trap fires).\n\n```bash\n#!/bin/sh\ntrap 'echo \"cleaning up\"' EXIT\necho \"working\"\n```\n\nRun it:\n\n```bash\nsh /root/trap.sh\n```",
+          "hint": "trap 'command' EXIT runs the command when the script ends.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_contains",
+              "target": "/root/trap.sh",
+              "expected_value": "trap",
+              "points_weight": 5,
+              "feedback_on_failure": "Add a trap command to /root/trap.sh"
+            },
+            {
+              "rule_type": "command_exit_zero",
+              "target": "sh /root/trap.sh",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Run: sh /root/trap.sh"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
