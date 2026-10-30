@@ -1,0 +1,243 @@
+{
+  "lessons": [
+    {
+      "title": "Chapter 7: Seeing the World as the Shell Sees It",
+      "slug": "tlcl-ch07-seeing-the-world-as-the-shell-sees-it",
+      "order": 7,
+      "is_published": true,
+      "description": "You can predict what the shell does to a command line before it runs\u2014pathname, tilde, arithmetic, brace and parameter expansion, and command substitution\u2014and use quoting to suppress the expansions you don't want.",
+      "content": "# Chapter 7: Seeing the World as the Shell Sees It\n\nWhen we press the enter key, bash performs several substitutions on the text of a command before it carries it out. This process is called **expansion**: we enter something and it is expanded into something else before the shell acts on it. One new command demonstrates it all: `echo`, a shell builtin that prints its text arguments on standard output.\n\n```bash\n[me@linuxbox ~]$ echo this is a test\nthis is a test\n[me@linuxbox ~]$ echo *\nDesktop Documents ls-output.txt Music Pictures Public Templates Videos\n```\n\nThe `echo` command never saw the `*`; the shell had already expanded it into the names of the files in the current working directory.\n\n## Pathname Expansion\n\nThe mechanism by which wildcards work is called **pathname expansion**. In the home directory from the example:\n\n```bash\n[me@linuxbox ~]$ echo D*\nDesktop Documents\n[me@linuxbox ~]$ echo [[:upper:]]*\nDesktop Documents Music Pictures Public Templates Videos\n[me@linuxbox ~]$ echo /usr/*/share\n/usr/kerberos/share /usr/local/share\n```\n\n> **Hidden files.** Period-prefixed names are hidden from expansion: `echo *` does not reveal them, and `echo .*` also produces `.` and `..` (the current and parent directories). Use `echo .[!.]*` or `ls -A` (\"almost all\") for a correct listing.\n\n## Tilde and Arithmetic Expansion\n\nAt the beginning of a word, `~` expands into the home directory of the named user, or of the current user if none is named: `echo ~` gives `/home/me`, `echo ~foo` gives `/home/foo`.\n\n**Arithmetic expansion** has the form `$((expression))` and turns the shell prompt into a calculator, integers only:\n\n| Operator | Description |\n|---|---|\n| + | Addition |\n| - | Subtraction |\n| * | Multiplication |\n| / | Division (integer results) |\n| % | Modulo (\"remainder\") |\n| ** | Exponentiation |\n\n```bash\n[me@linuxbox ~]$ echo $((2 + 2))\n4\n[me@linuxbox ~]$ echo Five divided by two equals $((5/2)) with $((5%2)) left over.\nFive divided by two equals 2 with 1 left over.\n```\n\nSpaces are not significant; parentheses group subexpressions (`echo $(((5**2) * 3))` prints 75).\n\n## Brace Expansion\n\n**Brace expansion** creates multiple text strings from a pattern with a preamble, a braced comma-separated list or range of integers or characters, and a postscript; no unquoted whitespace:\n\n```bash\n[me@linuxbox ~]$ echo Front-{A,B,C}-Back\nFront-A-Back Front-B-Back Front-C-Back\n[me@linuxbox ~]$ echo Number_{1..5}\nNumber_1 Number_2 Number_3 Number_4 Number_5\n```\n\nRanges can be zero-padded (`{01..15}`) and nested (`a{A{1,2},B{3,4}}b`). The classic use is generating directory lists that sort chronologically: `mkdir {2007..2009}-{01..12}`.\n\n## Parameter Expansion and Command Substitution\n\n**Parameter expansion** reveals **variables**, named chunks of data the system stores: `echo $USER` prints your username, and `printenv | less` lists them. A misspelled variable name expands to an empty string.\n\n**Command substitution** uses command output as an expansion: `ls -l $(which cp)` lists cp's real file without knowing its pathname. Entire pipelines work too; the older alternate syntax encloses the command in backquotes.\n\n## Quoting\n\n**Quoting** selectively suppresses unwanted expansions. Inside **double quotes**, all special characters lose their meaning except `$`, backslash and backtick: word splitting, pathname, tilde and brace expansion are suppressed, while parameter, arithmetic and command substitution still happen. Files with embedded spaces need it: unquoted `ls -l two words.txt` fails twice; `ls -l \"two words.txt\"` works. Word splitting treats unquoted spaces, tabs and newlines as delimiters, so `echo $(cal)` collapses the calendar to one line (38 arguments) while `echo \"$(cal)\"` keeps one argument.\n\n**Single quotes** suppress all expansions; each level of quoting suppresses more:\n\n```bash\n[me@linuxbox ~]$ echo text ~/*.txt {a,b} $(echo foo) $((2+2)) $USER\ntext /home/me/ls-output.txt a b foo 4 me\n[me@linuxbox ~]$ echo \"text ~/*.txt {a,b} $(echo foo) $((2+2)) $USER\"\ntext ~/*.txt {a,b} foo 4 me\n[me@linuxbox ~]$ echo 'text ~/*.txt {a,b} $(echo foo) $((2+2)) $USER'\ntext ~/*.txt {a,b} $(echo foo) $((2+2)) $USER\n```\n\nTo quote one character, precede it with a backslash, the **escape character**: `echo \"The balance for user $USER is: \\$5.00\"` or `mv bad\\&filename good_filename`. Backslash also introduces **escape sequences** for control codes:\n\n| Escape sequence | Meaning |\n|---|---|\n| \\a | Bell (an alert that causes the computer to beep) |\n| \\b | Backspace |\n| \\n | Newline; a line feed on Unix-like systems |\n| \\r | Carriage return |\n| \\t | Tab |\n\n`echo -e` (and `$' '`) interprets them: `sleep 10; echo -e \"Time's up\\a\"` is a primitive countdown timer.\n\n## Summary\n\n- Pressing enter triggers expansion before the command runs: pathname, tilde, arithmetic, brace, parameter, command substitution.\n- `echo` makes expansions visible\u2014why `echo *` prints filenames, not a star.\n- Double quotes suppress word splitting and most expansions but keep `$`, backslash and backtick active; single quotes suppress all; a backslash escapes one character.\n- Expansion and quoting are arguably the shell's most important subjects; without them much of its potential power is wasted.\n",
+      "exercises": [
+        {
+          "title": "Watch pathname expansion happen",
+          "slug": "tlcl-ch07-pathname-expansion",
+          "order": 1,
+          "instructions": "Create a small directory of test files and let the shell expand patterns over them, the way the book does with `echo`.\n\nRun these commands:\n\n```bash\nmkdir -p /root/playground\ncd /root/playground\ntouch alpha.txt beta.txt gamma.log\necho /root/playground/*.txt\necho /root/playground/[ab]*.txt\n```\n\nThe first `echo` should list only the two .txt files\u2014the shell expanded `*.txt` into the matching pathnames before `echo` ever saw the star.",
+          "hint": "Expansion is done by the shell, not by echo: the pattern is replaced with the matching pathnames before the command runs.",
+          "points": 20,
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/playground/alpha.txt",
+              "expected_value": "",
+              "points_weight": 10,
+              "feedback_on_failure": "Run `mkdir -p /root/playground` and then `touch /root/playground/alpha.txt`."
+            },
+            {
+              "rule_type": "output_matches",
+              "target": "echo /root/playground/*.txt",
+              "expected_value": "alpha\\.txt.*beta\\.txt",
+              "points_weight": 10,
+              "feedback_on_failure": "Run `echo /root/playground/*.txt` and confirm it expands to the two .txt files; create them with `touch /root/playground/alpha.txt /root/playground/beta.txt`."
+            }
+          ]
+        },
+        {
+          "title": "Quote to control expansion",
+          "slug": "tlcl-ch07-quoting",
+          "order": 2,
+          "instructions": "Spaces and dollar signs are where expansions bite; quoting is the cure. Practice all three levels:\n\n```bash\ncd /root/playground\ntouch \"two words.txt\"\nls -l \"two words.txt\"\necho \"$HOME is my home\"\necho '$HOME is my home'\necho The balance is \\$5.00\n```\n\nDouble quotes keep `$` alive (so `$HOME` expands), single quotes suppress every expansion, and a backslash escapes the single character after it. Check your environment too:\n\n```bash\nenv | grep HOME\n```",
+          "hint": "If `ls -l two words.txt` complains about two missing files, word splitting broke the name apart: wrap it in double quotes.",
+          "points": 20,
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/playground/two words.txt",
+              "expected_value": "",
+              "points_weight": 10,
+              "feedback_on_failure": "Run `touch \"/root/playground/two words.txt\"` (the quotes stop word splitting)."
+            },
+            {
+              "rule_type": "env_var_equals",
+              "target": "HOME",
+              "expected_value": "/root",
+              "points_weight": 10,
+              "feedback_on_failure": "Run `env | grep HOME` to inspect your home directory; logged in as root it should be /root."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Chapter 8: Advanced Keyboard Tricks",
+      "slug": "tlcl-ch08-advanced-keyboard-tricks",
+      "order": 8,
+      "is_published": true,
+      "description": "You can edit long command lines without retyping them using Readline cursor and kill/yank keys, complete names with tab, and recall previous commands with ctrl-R and history expansion.",
+      "content": "# Chapter 8: Advanced Keyboard Tricks\n\nThe command line prizes laziness\u2014doing the most work with the fewest keystrokes\u2014and never lifting your fingers from the keyboard for the mouse. bash implements command line editing with a library called **Readline**; this chapter introduces `clear` (clear the terminal screen) and `history` (display or manipulate the history list).\n\n> **Note.** Some key sequences, particularly alt combinations, may be intercepted by the GUI; all work properly on a virtual console.\n\n## Cursor Movement\n\n| Key | Action |\n|---|---|\n| ctrl-A / ctrl-E | Move cursor to the beginning / end of the line. |\n| ctrl-F / ctrl-B | Forward / backward one character; same as the arrow keys. |\n| alt-F / alt-B | Forward / backward one word. |\n| ctrl-L | Clear the screen and move the cursor to the top-left corner; `clear` does the same. |\n\n## Modifying Text\n\n| Key | Action |\n|---|---|\n| ctrl-D | Delete the character at the cursor location. |\n| ctrl-T / alt-T | Transpose (exchange) the character / word at the cursor with the one preceding it. |\n| alt-L / alt-U | Lowercase / uppercase the characters from the cursor to the end of the word. |\n\n## Cutting and Pasting (Killing and Yanking) Text\n\nReadline calls cutting and pasting **killing** and **yanking**; killed text is stored in a buffer called the **kill-ring**.\n\n| Key | Action |\n|---|---|\n| ctrl-K | Kill text from the cursor to the end of line. |\n| ctrl-U | Kill text from the cursor to the beginning of the line. |\n| alt-D | Kill text from the cursor to the end of the current word. |\n| alt-backspace | Kill to the beginning of the current word; at a word's start, kill the previous word. |\n| ctrl-Y | Yank text from the kill-ring at the cursor location. |\n\nReadline names alt the **meta key**: its developers could not assume every terminal had an extra control key, so they invented one. Pressing and releasing esc equals holding alt.\n\n## Completion\n\nPressing tab while typing a command triggers **completion**: `ls l` + tab becomes `ls ls-output.txt`, while `ls D` + tab completes nothing because D matches more than one entry\u2014the clue must be unambiguous (`ls Do` completes to Documents). Completion works on pathnames, variables (leading `$`), usernames (`~`), commands (first word) and hostnames (`@`, from /etc/hosts).\n\n| Key | Action |\n|---|---|\n| alt-? | Display a list of possible completions; pressing tab a second time usually does the same. |\n| alt-* | Insert all possible completions, useful when you want more than one match. |\n\nBash also has **programmable completion**\u2014application-specific rules implemented as shell functions; `set | less` shows them.\n\n## Using History\n\nbash stores entered commands in the file `bash_history` in your home directory\u2014the last 500 by default, though most distributions keep 1,000:\n\n```bash\n[me@linuxbox ~]$ history | grep /usr/bin\n   88   ls -l /usr/bin > ls-output.txt\n[me@linuxbox ~]$ !88\n```\n\nThe `!88` is **history expansion**: bash substitutes the 88th item of the history list. For incremental searching, press ctrl-R and start typing; the prompt becomes `(reverse-i-search)`'/usr/bin': ls -l /usr/bin > ls-output.txt`. It is \"reverse\" because we search from now into the past. Press enter to execute the match, ctrl-J to copy it to the command line, ctrl-R for the next occurrence, or ctrl-G/ctrl-C to quit.\n\n| Key | Action |\n|---|---|\n| ctrl-P / ctrl-N | Move to the previous / next history entry; same as the up / down arrows. |\n| alt-< / alt-> | Move to the top / bottom of the history list. |\n| ctrl-R | Reverse incremental search. |\n| alt-P / alt-N | Reverse / forward search, nonincremental: type the string, then enter. |\n| ctrl-O | Execute the current history item and advance to the next\u2014handy for re-running a sequence. |\n\n## History Expansion\n\n| Sequence | Action |\n|---|---|\n| !! | Repeat the last command (easier with the up arrow and enter). |\n| !number | Repeat history list item number. |\n| !string | Repeat last history list item starting with string. |\n| !?string | Repeat last history list item containing string. |\n\nUse the `!string` and `!?string` forms only when you are absolutely sure of the history's contents; the rest of the mechanism is arcane and documented in the \"HISTORY EXPANSION\" section of the bash man page.\n\n## Recording a Session\n\nMost distributions include `script`, which records an entire shell session into a file: `script file`, defaulting to a file named `typescript`.\n\n## Summary\n\n- Readline keys move the cursor by character and word, jump to line ends, and transpose or re-case text without retyping.\n- Killing and yanking (ctrl-K, ctrl-U, ctrl-Y with the kill-ring) is the command line's cut and paste.\n- Tab completion finishes unambiguous names; a second tab or alt-? shows the options.\n- bash_history holds past commands; ctrl-R searches it incrementally, ctrl-P/N walk it, and history expansion (!! and !number) re-runs entries.\n- These tricks are optional but potentially helpful\u2014pick and choose as desired.\n",
+      "exercises": [
+        {
+          "title": "Repair a mistyped line with Readline keys",
+          "slug": "tlcl-ch08-readline-editing",
+          "order": 1,
+          "instructions": "Create the destination directory first, so the repaired line has somewhere to write:\n\n```bash\nmkdir -p /root/playground\n```\n\nThen type the following command line, but before pressing enter, repair the typos with Readline keys instead of erasing and retyping the whole line:\n\n```bash\necho redline edting > /root/plaground/keys.txt\n```\n\nUse the arrow keys or ctrl-A / ctrl-E to jump around, alt-B / alt-F to hop one word at a time, and the delete keys (or ctrl-D) to remove wrong characters as you go. Fix all three mistakes\u2014`redline` to `readline`, `edting` to `editing`, `plaground` to `playground`\u2014then press enter and check the result:\n\n```bash\ncat /root/playground/keys.txt\n```",
+          "hint": "ctrl-A jumps to the beginning of the line and ctrl-E to the end; alt-B and alt-F move backward and forward one whole word.",
+          "points": 20,
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/playground/keys.txt",
+              "expected_value": "",
+              "points_weight": 10,
+              "feedback_on_failure": "Run `mkdir -p /root/playground` and then write the repaired line: `echo readline editing > /root/playground/keys.txt`."
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/playground/keys.txt",
+              "expected_value": "readline editing",
+              "points_weight": 10,
+              "feedback_on_failure": "Rewrite the file with the corrected text: `echo readline editing > /root/playground/keys.txt`"
+            }
+          ]
+        },
+        {
+          "title": "Recall commands with completion and history",
+          "slug": "tlcl-ch08-history-and-completion",
+          "order": 2,
+          "instructions": "Reduce keystrokes with completion and history recall. Type `cd /root/play` and press tab\u2014the shell should complete the unambiguous path\u2014then press enter and run `ls /root/playground`. Now record what you practiced:\n\n```bash\necho tab completed my pathnames > /root/playground/history.txt\n```\n\nThen reuse that line from history rather than retyping it: press ctrl-R, start typing `echo tab`, and when the found line appears press ctrl-J to copy it onto the command line; edit it to read `echo ctrl-R searched the history` and append it to the same file with `>>`. Finally run `history` to see the numbered list of commands you have entered.",
+          "hint": "Completion only fires when the clue is unambiguous; ctrl-R searches backward from now into the past, and ctrl-J copies the found line for editing.",
+          "points": 20,
+          "verification_rules": [
+            {
+              "rule_type": "command_exit_zero",
+              "target": "ls /root/playground",
+              "expected_value": "",
+              "points_weight": 10,
+              "feedback_on_failure": "Run `cd /root/playground` (with tab completion) and then `ls /root/playground`."
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/playground/history.txt",
+              "expected_value": "tab completed my pathnames",
+              "points_weight": 10,
+              "feedback_on_failure": "Run `echo tab completed my pathnames > /root/playground/history.txt` to create the log line."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Chapter 9: Permissions",
+      "slug": "tlcl-ch09-permissions",
+      "order": 9,
+      "is_published": true,
+      "description": "You can read and change file modes in octal and symbolic notation, control default permissions with umask, recognize the special file bits, and apply the book's shared-directory permission workflow as the superuser.",
+      "content": "# Chapter 9: Permissions\n\nLinux is a **multiuser** system: one user may not crash the machine or interfere with another's files, so users must be protected from each other. This chapter introduces that essential part of system security with the commands `id`, `chmod`, `umask`, `su`, `sudo`, `chown`, `chgrp` and `passwd`.\n\n## Owners, Group Members, and Everybody Else\n\nA regular user cannot read `/etc/shadow`: \"Permission denied.\" In the Unix security model a **user** owns files and controls access, users belong to a **group** granted access by owners, and owners may grant rights to everybody\u2014the **world**. `id` reports your identity:\n\n```bash\n[me@linuxbox ~]$ id\nuid=500(me) gid=500(me) groups=500(me)\n```\n\nAccounts get a **user ID (uid)** and **group ID (gid)**: `/etc/passwd` defines users (name, uid, gid, real name, home, shell), `/etc/group` defines groups, `/etc/shadow` holds passwords; all list the superuser (uid 0) and system users.\n\n## Reading, Writing, and Executing\n\nIn `ls -l` output the first attribute character is the file type: `-` regular file, `d` directory, `l` symbolic link (its attributes are dummies; the real ones belong to the target), `c` character special file (byte streams like /dev/null), `b` block special file (hard drives). The next nine characters are the **file mode**: read, write and execute for owner, group and world.\n\n| Attribute | Files | Directories |\n|---|---|---|\n| r | Open and read the file. | List the contents if execute is also set. |\n| w | Write or truncate; deleting and renaming is governed by directory attributes. | Create, delete and rename files inside if execute is also set. |\n| x | Run as a program; scripts must also be readable. | Enter the directory, e.g. `cd directory`. |\n\n## chmod: Change File Mode\n\nOnly a file's owner or the superuser may change its mode. In **octal notation** each digit represents three binary digits:\n\n| Octal | Binary | File mode |\n|---|---|---|\n| 0 | 000 | --- |\n| 1 | 001 | --x |\n| 2 | 010 | -w- |\n| 3 | 011 | -wx |\n| 4 | 100 | r-- |\n| 5 | 101 | r-x |\n| 6 | 110 | rw- |\n| 7 | 111 | rwx |\n\n```bash\n[me@linuxbox ~]$ chmod 600 foo.txt\n[me@linuxbox ~]$ ls -l foo.txt\n-rw------- 1 me    me   0 2018-03-06 14:52 foo.txt\n```\n\nThree digits set owner, group and world; you mostly need 7 (rwx), 6 (rw-), 5 (r-x), 4 (r--) and 0 (---). **Symbolic notation** combines who\u2014`u` owner, `g` group, `o` others, `a` all (default)\u2014an operation\u2014`+`, `-`, `=`\u2014and r, w, x: `u+x` adds owner execute, `+x` equals `a+x`, `go=rw` sets group and others to read/write, and `u+x,go=rx` chains with commas. Symbolic notation changes one attribute at a time; `--recursive` hits files and directories alike, rarely wanted.\n\n## umask: Set Default Permissions\n\n`umask` sets the default permissions of new files as bits to be **removed** from the mode. With `umask` 0002, `> foo.txt` creates `-rw-rw-r--`: world loses write. In binary, mask `000 000 010 010` applied to `--- rw- rw- rw-` yields `--- rw- r-- r--`: every 1 in the mask unsets that attribute; `umask 0000` leaves the file world-writable. The default is usually fine; high-security situations control it.\n\n## Some Special Permissions\n\nA fourth octal digit carries three rare bits. The **setuid bit** (4000) on an executable changes the effective user ID to the program's owner, so setuid root programs run with superuser privileges and must be kept to a minimum. The **setgid bit** (2000) does the same for the group ID; on a directory, new files inherit the directory's group rather than the creator's. The **sticky bit** (1000), ignored on files, blocks deleting or renaming inside a directory unless you own the directory, own the file, or are the superuser (/tmp). Set them with `chmod u+s program`, `chmod g+s dir`, `chmod +t dir`, shown in `ls` as `-rwsr-xr-x`, `drwxrwsr-x`, `drwxrwxrwt`.\n\n## Changing Identities\n\nThree ways to become another user: log out and back in, `su`, or `sudo`. `su [-[l]] [user]` starts a shell as another user; `su -` loads the superuser's environment and home directory, marked by a trailing `#` prompt (`exit` returns); `su -c 'command'` runs one quoted command so expansion happens in the new shell. `sudo` runs commands under `/etc/sudoers` rules, authenticates with **your own password** and starts no new shell; `sudo -l` lists your privileges. Ubuntu disables root login entirely and relies on sudo; here you are already the superuser, so elevation is never needed.\n\n## chown, chgrp, and a Shared Directory\n\n`chown [owner][:[group]] file...` (superuser only) changes ownership: `bob` sets the owner, `bob:users` owner and group, `:admins` the group only, `bob:` the owner plus their login group. `chgrp` is the older group-only equivalent.\n\nSetting up a shared directory for users bill and karen in group music (first four steps run through sudo on a normal system): `mkdir /usr/local/share/Music`, `chown :music`, `chmod 775`, `chmod g+s`, `umask 0002`. Group music plus 775 lets members write while others only list; umask 0022 would make new files `-rw-r--r--`, uneditable by the other members, and without setgid new files take the creator's primary group. Afterwards new files are `-rw-rw-r-- 1 bill music` and directories `drwxrwsr-x`; umask lasts only for the session.\n\n## Changing Your Password\n\n`passwd [user]` prompts for old and new passwords and enforces strong ones (`BAD PASSWORD: it is WAY too short`). The superuser may set other users' passwords and lock or expire accounts.\n\n## Summary\n\n- Every file has an owner, a group owner and the world, with read, write and execute rights; directories use x to enter and w (with x) to create and delete inside.\n- `chmod` sets modes in octal or symbolically (u/g/o/a, +/\u2212/=, r/w/x); `umask` removes bits from new files' default mode.\n- setuid, setgid and the sticky bit form the fourth octal digit; `su`/`sudo` change identity, `chown`/`chgrp` ownership.\n- The shared-directory recipe: group ownership, 775, setgid, umask 0002.\n",
+      "exercises": [
+        {
+          "title": "Set modes with octal and symbolic notation",
+          "slug": "tlcl-ch09-chmod-modes",
+          "order": 1,
+          "instructions": "Create a file and change its mode two ways, exactly as the book does. Only the owner or the superuser can change a mode, and here you are the superuser\u2014`id` shows uid=0:\n\n```bash\nmkdir -p /root/playground\ncd /root/playground\ntouch secret.txt\nls -l secret.txt\nchmod 600 secret.txt\nls -l secret.txt\nchmod u+x,g-w,o-rwx secret.txt\nls -l secret.txt\nid\n```\n\nReasoning: `600` is `rw-------` (owner read/write only). The symbolic change then adds execute for the owner and strips everything from group and world, leaving `-rwx------`\u2014the same result as `chmod 700`.",
+          "hint": "Each octal digit is three permission bits: 7 is rwx, 6 rw-, 4 r--, 0 ---; `u+x` adds one attribute without disturbing the others.",
+          "points": 30,
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/playground/secret.txt",
+              "expected_value": "",
+              "points_weight": 10,
+              "feedback_on_failure": "Run `mkdir -p /root/playground` and then `touch /root/playground/secret.txt`."
+            },
+            {
+              "rule_type": "output_matches",
+              "target": "ls -l /root/playground/secret.txt",
+              "expected_value": "-rwx------",
+              "points_weight": 10,
+              "feedback_on_failure": "Run `chmod 700 /root/playground/secret.txt` to get owner rwx and no permissions for anyone else."
+            },
+            {
+              "rule_type": "output_matches",
+              "target": "id",
+              "expected_value": "uid=0",
+              "points_weight": 10,
+              "feedback_on_failure": "Run `id` to display your user identity; logged in as the superuser it shows uid=0."
+            }
+          ]
+        },
+        {
+          "title": "Shape default permissions with umask",
+          "slug": "tlcl-ch09-umask",
+          "order": 2,
+          "instructions": "The umask removes permission bits from the mode a new file is born with. Watch it work, as in the book:\n\n```bash\ncd /root/playground\nrm -f umask_demo.txt private.txt\numask\numask 0022\ntouch umask_demo.txt\nls -l umask_demo.txt\numask 0077\ntouch private.txt\nls -l private.txt\numask 0022\n```\n\nWith mask 0022 the new file is `-rw-r--r--` (world write is masked out); with 0077 it is `-rw-------`, readable and writable only by the owner. Restore 0022 when you are done\u2014clean up like the book says.",
+          "hint": "Expand the mask to binary: wherever a 1 bit appears, that permission is removed from the file's original mode.",
+          "points": 20,
+          "verification_rules": [
+            {
+              "rule_type": "output_matches",
+              "target": "ls -l /root/playground/umask_demo.txt",
+              "expected_value": "-rw-r--r--",
+              "points_weight": 10,
+              "feedback_on_failure": "Set the mask first, then create the file: `umask 0022` followed by `touch /root/playground/umask_demo.txt`."
+            },
+            {
+              "rule_type": "output_matches",
+              "target": "ls -l /root/playground/private.txt",
+              "expected_value": "-rw-------",
+              "points_weight": 10,
+              "feedback_on_failure": "Set the mask first, then create the file: `umask 0077` followed by `touch /root/playground/private.txt`."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Chapter 10: Processes",
+      "slug": "tlcl-ch10-processes",
+      "order": 10,
+      "is_published": true,
+      "description": "You can explain how Linux organizes programs as parent and child processes with PIDs, move jobs between the foreground and background, and end processes with the kill and killall signals.",
+      "content": "# Chapter 10: Processes\n\nModern operating systems are multitasking: they create the illusion of doing several things at once by rapidly switching between programs. The kernel organizes these as **processes** waiting for their turn at the CPU. When a computer becomes sluggish or an application stops responding, `ps`, `top`, `jobs`, `bg`, `fg`, `kill`, `killall` and `shutdown` let us examine and terminate processes.\n\n## How a Process Works\n\nAt startup the kernel launches `init`\u2014always PID 1\u2014which runs the **init scripts** in `/etc` that start the services; many are **daemons**: background programs with no user interface. A program launching another is a **parent process** producing a **child process**; processes, like files, have owners and user IDs.\n\n## Viewing Processes with ps\n\n```bash\n[me@linuxbox ~]$ ps\n  PID TTY           TIME CMD\n 5198 pts/1    00:00:00 bash\n10129 pts/1    00:00:00 ps\n```\n\nBy default `ps` shows only the current terminal's processes; TTY (\"teletype\") is the controlling terminal, TIME the CPU time consumed. The `x` option (no leading dash) lists every process we own\u2014`?` means no controlling terminal\u2014and adds the `STAT` column:\n\n| State | Meaning |\n|---|---|\n| R | Running, or ready to run. |\n| S | Sleeping: waiting for an event such as a keystroke. |\n| D | Uninterruptible sleep: waiting for I/O. |\n| T | Stopped. |\n| Z | Defunct or \"zombie\": a terminated child not cleaned up by its parent. |\n| < | High-priority process; giving a process more CPU time is called **niceness**, so such a process is \"less nice\". |\n| N | Low-priority process, served after higher-priority ones. |\n\nThe options `aux` (no leading dash, \"BSD-style\") show every user's processes with columns USER (owner), %CPU, %MEM, VSZ (virtual memory size), RSS (physical memory in kB) and START.\n\n## Viewing Processes Dynamically with top\n\n`ps` is a snapshot; `top` updates every three seconds by default, sorting processes by CPU activity under a system summary:\n\n```\ntop - 14:59:20 up 6:30, 2 users, load average: 0.07, 0.02, 0.00\nTasks: 109 total,   1 running, 106 sleeping,   0 stopped,   2 zombie\nCpu(s): 0.7%us, 1.0%sy, 0.0%ni, 98.3%id, 0.0%wa, 0.0%hi, 0.0%si\nMem:    319496k total,   314860k used,     4636k free,    19392k buff\n```\n\nRow one gives the time, **uptime**, users and **load average**\u2014runnable processes sharing the CPU over the last 1, 5 and 15 minutes; under 1.0 the machine is not busy. Tasks summarizes states; Cpu(s) splits work into user (us), kernel (sy), nice (ni), idle (id) and I/O wait (wa); Mem and Swap show memory use. `h` shows help, `q` quits; top is faster and lighter than graphical monitors, so the monitor itself does not cause the slowdown you are tracking.\n\n## Controlling Processes: Job Control\n\nThe book's guinea pig is `xlogo`, a sample X Window program; `sleep` serves equally well. A running program holds the prompt until it finishes; **ctrl-C interrupts** it\u2014a polite request to terminate. To keep the prompt, append an **ampersand** and the job runs in the **background**:\n\n```bash\n[me@linuxbox ~]$ xlogo &\n[1] 28236\n[me@linuxbox ~]$ jobs\n[1]+ Running                    xlogo &\n```\n\nThe shell reports job `[1]` with PID 28236\u2014this is **job control**; `jobs` lists jobs launched from our terminal. Background jobs are immune to terminal input, so `fg %1`\u2014a **jobspec**, optional with one job\u2014returns one to the foreground. **ctrl-Z stops** (pauses) a foreground job (`[1]+ Stopped    xlogo`); `bg %1` resumes it in the background.\n\n## Signals: Ending Processes with kill\n\n`kill` does not exactly kill\u2014it **sends signals**, the OS's way of communicating with programs. ctrl-C sends INT, ctrl-Z sends TSTP; programs listen and may act, say saving work first. Syntax: `kill -signal PID...`, default TERM; jobspecs replace PIDs, and you must own a process (or be the superuser) to signal it.\n\n| Number | Name | Meaning |\n|---|---|---|\n| 1 | HUP | Hang up: sent when a terminal session closes; many daemons reread their configuration on it. |\n| 2 | INT | Interrupt: the ctrl-C equivalent. |\n| 9 | KILL | Never delivered to the target\u2014the kernel ends the process instantly, no cleanup; last resort only. |\n| 15 | TERM | Terminate: kill's default. |\n| 18 | CONT | Continue: restores a stopped process; sent by bg and fg. |\n| 19 | STOP | Stop: pauses without terminating; cannot be ignored, like KILL. |\n| 20 | TSTP | Terminal stop: the ctrl-Z signal; the program may ignore it. |\n\nSignals may be numbered or named, with or without a SIG prefix (`kill -1`, `kill -INT`, `kill -SIGINT`); `kill -l` lists them. Others: 3 QUIT, 11 SEGV (illegal memory use), 28 WINCH (window change\u2014top and less redraw). `killall [-u user] [-signal] name...` signals every process matching a program name.\n\n## Shutting Down the System\n\nOrderly shutdown terminates all processes and syncs mounted file systems. `halt`, `poweroff` and `reboot` act at once; `shutdown` picks action and delay (`shutdown -h now` halts, `shutdown -r now` reboots; use with sudo on a normal system) and warns logged-in users. Delayed execution with `at` and cron belongs to `/etc/crontab` and later chapters.\n\n## More Process-Related Commands\n\n`pstree` lists processes in a tree-like pattern showing parent-child relationships; `vmstat` snapshots memory, swap and disk I/O, and with a delay (`vmstat 5`) updates until ctrl-C; `xload`/`tload` graph system load.\n\n## Summary\n\n- Processes are how the kernel schedules programs; init (PID 1) starts the services and parents produce children.\n- `ps` snapshots processes (`x`, `aux`); STAT covers running, sleeping, stopped, zombie and the niceness markers < and N.\n- `top` updates continuously with uptime, load average, task states and CPU/memory/swap rows.\n- Job control: `&` backgrounds, `jobs` lists, ctrl-C interrupts, ctrl-Z stops, and `bg`/`fg` resume with jobspecs.\n- `kill`/`killall` send signals: TERM is the default; KILL is instant and unignorable, a last resort.\n- Command line process tools beat GUI monitors for speed and light footprint.\n",
+      "exercises": [
+        {
+          "title": "Run and move jobs between foreground and background",
+          "slug": "tlcl-ch10-job-control",
+          "order": 1,
+          "instructions": "In the book, xlogo is the guinea pig; here `sleep` plays the same role. Launch a program so it is immediately placed in the background and watch the shell report the jobspec and PID:\n\n```bash\nmkdir -p /root/playground\nsleep 30 &\njobs\necho background job started > /root/playground/bg.log\n```\n\nThe `&` returns the prompt at once while the job runs in the background, and `jobs` lists it as Running. Now type `sleep 60`, press ctrl-Z to stop (pause) it, run `bg %1` to resume it in the background, and `jobs` again to see it there.",
+          "hint": "A background job is immune to ctrl-C; use fg with its jobspec (for example %1) to bring it back to the foreground before interrupting it.",
+          "points": 20,
+          "verification_rules": [
+            {
+              "rule_type": "command_exit_zero",
+              "target": "jobs",
+              "expected_value": "",
+              "points_weight": 10,
+              "feedback_on_failure": "Run `jobs` in the terminal to list jobs launched from this shell; start one with `sleep 30 &` if the list is empty."
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/playground/bg.log",
+              "expected_value": "background job started",
+              "points_weight": 10,
+              "feedback_on_failure": "Run `echo background job started > /root/playground/bg.log` to write the job log."
+            }
+          ]
+        },
+        {
+          "title": "End a process with a signal",
+          "slug": "tlcl-ch10-kill-signals",
+          "order": 2,
+          "instructions": "`kill` doesn't literally kill\u2014it sends signals. Launch a long-running job and note the PID the shell prints:\n\n```bash\nsleep 600 &\n```\n\nReplace 1234 below with the real PID from the shell's `[1] 1234` message and terminate the job:\n\n```bash\nkill 1234\necho terminated with TERM > /root/playground/kill.log\n```\n\nThe default TERM signal lets the process clean up; KILL (signal 9) is never actually delivered\u2014the kernel ends the process instantly\u2014so the book says to use it only as a last resort. When the job dies the shell reports `[1]+ Terminated  sleep 600`. Also list every signal with `kill -l`.",
+          "hint": "If a process ignores TERM, try `kill -9` with its PID\u2014but KILL gives the process no chance to save its work.",
+          "points": 20,
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/playground/kill.log",
+              "expected_value": "",
+              "points_weight": 10,
+              "feedback_on_failure": "Run `echo terminated with TERM > /root/playground/kill.log` in the terminal."
+            },
+            {
+              "rule_type": "output_matches",
+              "target": "whoami",
+              "expected_value": "root",
+              "points_weight": 10,
+              "feedback_on_failure": "Run `whoami`; as root you may send signals to every process on this system."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
