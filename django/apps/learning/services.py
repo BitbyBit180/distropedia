@@ -77,8 +77,11 @@ def verify_exercise_submission(user, exercise_id, evidence):
             f_info = files_evidence.get(target) or {}
             content = f_info.get("content") or ""
             if expected:
+                # expected_value is authored as either a regex or literal shell
+                # text ("$@", ${f%), so a failed regex match still gets the
+                # substring test instead of silently never passing.
                 try:
-                    rule_passed = bool(re.search(expected, content))
+                    rule_passed = bool(re.search(expected, content)) or (expected in content)
                 except re.error:
                     rule_passed = expected in content
             else:
@@ -93,7 +96,7 @@ def verify_exercise_submission(user, exercise_id, evidence):
             out = cmd_info.get("output") or ""
             if expected:
                 try:
-                    rule_passed = bool(re.search(expected, out))
+                    rule_passed = bool(re.search(expected, out)) or (expected in out)
                 except re.error:
                     rule_passed = expected in out
             else:
