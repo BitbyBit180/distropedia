@@ -89,11 +89,10 @@ export default function LinuxLabPage({ onNavigate }) {
             <span className="text-[11px] text-[#8B949E] font-medium mr-1">Quick tests:</span>
             {[
               { label: 'neofetch', cmd: 'neofetch' },
-              { label: 'pkg list', cmd: 'pkg list' },
-              { label: 'cowsay', cmd: 'cowsay "DistroPedia Linux!"' },
               { label: 'tree /etc', cmd: 'tree /etc' },
-              { label: 'calc 2^10', cmd: 'calc 2^10' },
+              { label: 'file /bin/sh', cmd: 'file /bin/sh' },
               { label: 'uname -a', cmd: 'uname -a' },
+              { label: 'df -h', cmd: 'df -h' },
             ].map(({ label, cmd }) => (
               <button
                 key={label}
@@ -173,7 +172,7 @@ export default function LinuxLabPage({ onNavigate }) {
                           <span>Interactive Sandbox & Packages</span>
                         </div>
                         <p className="text-[11px] text-[#8B949E] leading-normal mb-2">
-                          Available tools: <code className="text-[#7EE787]">neofetch</code>, <code className="text-[#7EE787]">tree</code>, <code className="text-[#7EE787]">calc</code>, <code className="text-[#7EE787]">cowsay</code>, <code className="text-[#7EE787]">nano</code>, <code className="text-[#7EE787]">curl</code>, and <code className="text-[#7EE787]">pkg list</code>.
+                          Available tools: <code className="text-[#7EE787]">neofetch</code>, <code className="text-[#7EE787]">tree</code>, <code className="text-[#7EE787]">curl</code>, and <code className="text-[#7EE787]">file</code>.
                         </p>
                         <p className="text-[11px] text-[#8B949E] leading-normal">
                           Click <strong className="text-white">Save</strong> in the terminal toolbar to persist your files and memory state in your browser, or click <strong className="text-white">Full</strong> for fullscreen mode.

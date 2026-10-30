@@ -50,12 +50,13 @@ export const LinuxTerminal = forwardRef(function LinuxTerminal(
   }, []);
 
   const handleEmulatorReady = useCallback(() => {
-    if (onTerminalReady) onTerminalReady();
     if (termRef.current) {
       try {
+        termRef.current.clear();
         termRef.current.focus();
       } catch {}
     }
+    if (onTerminalReady) onTerminalReady();
   }, [onTerminalReady]);
 
   const {
@@ -544,7 +545,7 @@ export const LinuxTerminal = forwardRef(function LinuxTerminal(
               <div className="flex flex-wrap items-center justify-center gap-3 pt-3 border-t border-[#30363D]/60 text-[11px] text-[#8B949E]">
                 <span className="flex items-center gap-1 text-[#58A6FF]">
                   <Package size={11} />
-                  <span>neofetch, tree, calc, cowsay, curl, nano, pkg</span>
+                  <span>neofetch, tree, curl, file</span>
                 </span>
                 <span>•</span>
                 <span className="flex items-center gap-1">

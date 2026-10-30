@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { GUEST_PACKAGES } from './guestPackages.js';
+import { GUEST_SETUP_SCRIPT } from './guestPackages.js';
 import {
   saveSessionToDB,
   getSavedSessionFromDB,
@@ -11,7 +11,7 @@ import {
 /**
  * Custom hook to manage the v86 Linux emulator lifecycle.
  * Supports:
- * - Booting fresh Buildroot Linux guest with pre-installed utilities (neofetch, tree, calc, curl, pkg, cowsay, nano)
+ * - Booting fresh Buildroot Linux guest with pre-installed utilities (neofetch, tree, curl, file)
  * - Saving active session snapshots (RAM + CPU state) to IndexedDB
  * - Resuming saved sessions instantly
  * - Exporting and importing .v86state files
@@ -25,7 +25,7 @@ export function useV86({ onOutput, onReady, onError } = {}) {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isResumed, setIsResumed] = useState(false);
   const isMountedRef = useRef(true);
-  const packagesInjectedRef = useRef(false);
+  const isSilencedRef = useRef(true);
   // Decoded copy of everything the guest has printed, used by the verification probe
   const outputTailRef = useRef('');
   const decoderRef = useRef(new TextDecoder('utf-8', { fatal: false }));
@@ -60,6 +60,7 @@ export function useV86({ onOutput, onReady, onError } = {}) {
 
   // Clean up emulator instance
   const destroyEmulator = useCallback(() => {
+    isSilencedRef.current = true;
     if (emulatorRef.current) {
       try {
         if (typeof emulatorRef.current.stop === 'function') {
@@ -73,7 +74,6 @@ export function useV86({ onOutput, onReady, onError } = {}) {
       }
       emulatorRef.current = null;
     }
-    packagesInjectedRef.current = false;
   }, []);
 
   const stop = useCallback(() => {
@@ -115,25 +115,7 @@ export function useV86({ onOutput, onReady, onError } = {}) {
 
         const isRestoring = !!stateBufferToLoad;
         setIsResumed(isRestoring);
-
-        // Type the DistroPedia extras into the guest shell once it is at a prompt
-        const injectGuestPackages = (emu) => {
-          if (packagesInjectedRef.current) return;
-          packagesInjectedRef.current = true;
-          let i = 0;
-          const step = () => {
-            if (!isMountedRef.current || emulatorRef.current !== emu) return;
-            if (i >= GUEST_PACKAGES.length) return;
-            try {
-              emu.serial0_send(GUEST_PACKAGES[i] + '\n');
-            } catch {
-              return;
-            }
-            i += 1;
-            setTimeout(step, 700);
-          };
-          setTimeout(step, isRestoring ? 600 : 300);
-        };
+        isSilencedRef.current = true;
 
         const config = {
           wasm_path: '/v86/v86.wasm',
@@ -195,13 +177,12 @@ export function useV86({ onOutput, onReady, onError } = {}) {
                 if (outputTailRef.current.length > 300000) {
                   outputTailRef.current = outputTailRef.current.slice(-200000);
                 }
-                if (onOutputRef.current) {
+                // Only pass output to xterm when terminal is marked ready for the user
+                if (!isSilencedRef.current && onOutputRef.current) {
                   onOutputRef.current(bytes);
                 }
               }
             };
-            // Background tabs suspend requestAnimationFrame, so a timer backs it
-            // up; whichever runs first drains the buffer and the other no-ops.
             requestAnimationFrame(flush);
             setTimeout(flush, 250);
           }
@@ -216,18 +197,29 @@ export function useV86({ onOutput, onReady, onError } = {}) {
           ) {
             detectedShell = true;
             if (isMountedRef.current) {
-              setStatus('ready');
-              if (onReadyRef.current) onReadyRef.current();
+              if (isRestoring) {
+                // Resumed sessions already have packages and state preserved
+                isSilencedRef.current = false;
+                setStatus('ready');
+                if (onReadyRef.current) onReadyRef.current();
+              } else {
+                // Run background setup silently: install file, tree, curl, neofetch & aliases
+                emulator.serial0_send(
+                  "cat << 'DPEOF' > /tmp/.init.sh\n" +
+                  GUEST_SETUP_SCRIPT +
+                  "\nDPEOF\nsh /tmp/.init.sh >/dev/null 2>&1; rm -f /tmp/.init.sh; clear\n"
+                );
 
-              // Clear screen cleanly after boot
-              if (!isRestoring) {
+                // Wait 400ms for setup script to complete and screen to clear, then reveal
                 setTimeout(() => {
-                  if (emulatorRef.current) {
-                    emulatorRef.current.serial0_send('clear\n');
-                  }
-                }, 150);
+                  if (!isMountedRef.current || emulatorRef.current !== emulator) return;
+                  isSilencedRef.current = false;
+                  setStatus('ready');
+                  if (onReadyRef.current) onReadyRef.current();
+                  // Trigger a fresh shell prompt
+                  emulator.serial0_send('\n');
+                }, 400);
               }
-              injectGuestPackages(emulator);
             }
           }
         });
@@ -239,11 +231,11 @@ export function useV86({ onOutput, onReady, onError } = {}) {
             setTimeout(() => {
               if (isMountedRef.current && !detectedShell) {
                 detectedShell = true;
+                isSilencedRef.current = false;
                 setStatus('ready');
                 if (onReadyRef.current) onReadyRef.current();
-                injectGuestPackages(emulator);
               }
-            }, isRestoring ? 1500 : 4500);
+            }, isRestoring ? 1500 : 5000);
           }
         });
 
