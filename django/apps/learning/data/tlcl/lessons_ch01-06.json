@@ -1,0 +1,366 @@
+{
+  "lessons": [
+    {
+      "title": "Chapter 1: What Is the Shell?",
+      "slug": "tlcl-ch01-what-is-the-shell",
+      "order": 1,
+      "is_published": true,
+      "description": "Understand what the shell is and how a terminal emulator gives access to it. Read the prompt, recall command history, and run the first simple commands like date, df, and free.",
+      "content": "# Chapter 1: What Is the Shell?\n\nWhen we speak of the command line, we are really referring to the **shell**: a program that takes keyboard commands and passes them to the operating system to carry out. Almost all Linux distributions supply a shell program from the GNU Project called **bash**. The name is an acronym for *bourne-again shell*, a reference to the fact that bash is an enhanced replacement for **sh**, the original Unix shell program written by Steve Bourne.\n\n## Terminal Emulators\n\nWhen using a graphical user interface (GUI), we need another program called a **terminal emulator** to interact with the shell. KDE uses **konsole** and GNOME uses **gnome-terminal**, though it is likely called simply Terminal on your menu. They all basically do the same thing: give us access to the shell.\n\n## Making Your First Keystrokes\n\nLaunch the terminal emulator and you should see something like this:\n\n```bash\n[me@linuxbox ~]$\n```\n\nThis is called a **shell prompt**, and it appears whenever the shell is ready to accept input. It typically includes your username@machinename, followed by the current working directory and a dollar sign. If the last character of the prompt is a hash mark (#) rather than a dollar sign, the terminal session has **superuser privileges** — either you are logged in as the root user or your terminal emulator provides administrative privileges.\n\nTry some typing. Enter some gibberish at the prompt:\n\n```bash\n[me@linuxbox ~]$ kaekfjaeifj\nbash: kaekfjaeifj: command not found\n[me@linuxbox ~]$\n```\n\nBecause this command makes no sense, the shell tells us so and gives us another chance.\n\n## Command History and Cursor Movement\n\nPress the up arrow and the previous command reappears after the prompt. This is called **command history**. Most Linux distributions remember the last 1,000 commands by default. Press the down arrow and the previous command disappears. The left and right arrows position the cursor anywhere on the command line, which makes editing commands easy.\n\nWhile the shell is all about the keyboard, the X Window System supports a quick copy-and-paste technique: highlight text with the mouse to copy it into an X buffer, then press the middle mouse button to paste it at the cursor. Don't be tempted to use ctrl-C and ctrl-V inside a terminal window — they don't work; those control codes have different meanings to the shell.\n\n> The Console Behind the Curtain: Even with no terminal emulator running, several terminal sessions continue to run behind the graphical desktop. These **virtual consoles** are accessed by pressing ctrl-alt-F1 through ctrl-alt-F6, which presents a login prompt. Switch between them with alt-F1 through alt-F6, and on most systems return to the graphical desktop with alt-F7.\n\n## Try Some Simple Commands\n\nThe `date` command displays the current time and date:\n\n```bash\n[me@linuxbox ~]$ date\nFri Feb 2 15:09:41 EST 2018\n```\n\nA related command is `cal`, which by default displays a calendar of the current month. To see the current amount of free space on our disk drives, enter `df`, and to display the amount of free memory, enter `free`:\n\n```bash\n[me@linuxbox ~]$ df\nFilesystem              1K-blocks        Used Available Use% Mounted on\n/dev/sda2                15115452     5012392   9949716 34% /\n/dev/sda5                59631908    26545424  30008432 47% /home\n[me@linuxbox ~]$ free\n         total       used       free     shared    buffers     cached\nMem:    513712     503976       9736          0       5312     122916\nSwap:  1052248     104712     947536\n```\n\n## Ending a Terminal Session\n\nWe can end a terminal session by closing the terminal emulator window, by entering the `exit` command at the shell prompt, or by pressing ctrl-D.\n\n```bash\n[me@linuxbox ~]$ exit\n```\n\n## Summary\n\n- The shell is a program that takes keyboard commands and passes them to the operating system; bash is the GNU shell found on almost all Linux distributions.\n- A terminal emulator gives us access to the shell from a graphical desktop.\n- The shell prompt appears whenever the shell is ready for input; a trailing # instead of $ means superuser privileges.\n- The up and down arrows recall command history, and the left and right arrows move the cursor for light command-line editing.\n- Simple commands like date, cal, df, and free report the time, the calendar, free disk space, and free memory.\n- A terminal session ends by closing the window, typing exit, or pressing ctrl-D.",
+      "exercises": [
+        {
+          "title": "Meet the prompt",
+          "slug": "meet-the-prompt",
+          "order": 1,
+          "instructions": "The prompt in your terminal is ready for input. Run the `date` command to print the current time and date, then run `whoami` to see which user you are logged in as (your prompt ends in `#`, which means the session has superuser privileges).\n\n```bash\ndate\nwhoami\n```",
+          "hint": "Type each command exactly as shown after the prompt and press Enter.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "command_exit_zero",
+              "target": "date",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Run `date` in the terminal and press Enter."
+            },
+            {
+              "rule_type": "output_matches",
+              "target": "whoami",
+              "expected_value": "root",
+              "points_weight": 5,
+              "feedback_on_failure": "Run `whoami` in the terminal; it should print `root`."
+            }
+          ]
+        },
+        {
+          "title": "System reports",
+          "slug": "system-reports",
+          "order": 2,
+          "instructions": "The book's `df` command shows free space on our disk drives and `free` shows the amount of free memory. Run both to see reports about your own system.\n\n```bash\ndf\nfree\n```",
+          "hint": "Both commands need no options; a bare `df` and `free` are enough.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "command_exit_zero",
+              "target": "df",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Run `df` in the terminal."
+            },
+            {
+              "rule_type": "command_exit_zero",
+              "target": "free",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Run `free` in the terminal."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Chapter 2: Navigation",
+      "slug": "tlcl-ch02-navigation",
+      "order": 2,
+      "is_published": true,
+      "description": "Move around the Linux directory tree with pwd, cd, and ls. Distinguish absolute from relative pathnames and use the dot notations and the cd shortcuts.",
+      "content": "# Chapter 2: Navigation\n\nThis chapter introduces the three commands we use to move around the file system: `pwd` (print name of current working directory), `cd` (change directory), and `ls` (list directory contents).\n\n## Understanding the File System Tree\n\nLike Windows, a Unix-like operating system such as Linux organizes its files in a **hierarchical directory structure**: a tree-like pattern of directories which may contain files and other directories. The first directory in the file system is called the **root directory**, written as `/`. Unlike Windows, which has a separate file system tree for each storage device, Linux always has a **single** file system tree, no matter how many drives are attached; storage devices are mounted at various points on the tree.\n\n## The Current Working Directory\n\nThe command line has no pictures, so imagine the file system is a maze shaped like an upside-down tree and we are able to stand in the middle of it. At any given time we are inside a single directory, called the **current working directory**. To display it, we use the `pwd` command:\n\n```bash\n[me@linuxbox ~]$ pwd\n/home/me\n```\n\nWhen we first log in (or start a terminal session), our current working directory is set to our **home directory**. Each user account is given its own home directory, and it is the only place a regular user is allowed to write files.\n\n## Listing the Contents of a Directory\n\nTo list the files and directories in the current working directory, we use `ls`:\n\n```bash\n[me@linuxbox ~]$ ls\nDesktop Documents Music   Pictures   Public   Templates   Videos\n```\n\n## Changing the Current Working Directory\n\nTo change the working directory, type `cd` followed by the **pathname** — the route along the branches of the tree to the directory we want. Pathnames come in two flavors.\n\n### Absolute Pathnames\n\nAn **absolute pathname** begins with the root directory and follows the tree branch by branch until the path is complete. The pathname `/usr/bin` means: from the root directory (the leading slash) there is a directory called `usr` that contains a directory called `bin`.\n\n```bash\n[me@linuxbox ~]$ cd /usr/bin\n[me@linuxbox bin]$ pwd\n/usr/bin\n```\n\nAs a convenience, the prompt is usually set up to automatically display the name of the working directory.\n\n### Relative Pathnames\n\nA **relative pathname** starts from the working directory, using two special notations: `.` (dot) refers to the working directory itself and `..` (dot dot) refers to the working directory's **parent directory**.\n\n```bash\n[me@linuxbox bin]$ cd ..\n[me@linuxbox usr]$ pwd\n/usr\n[me@linuxbox usr]$ cd ./bin\n[me@linuxbox bin]$ pwd\n/usr/bin\n```\n\nIn almost all cases we can omit the `./` part because it is implied — `cd bin` does the same thing. Which form to use? The one that requires the least typing!\n\n## Important Facts About Filenames\n\n- Filenames that begin with a period are **hidden**; `ls` will not list them unless you say `ls -a`.\n- Filenames and commands are **case sensitive**. The filenames File1 and file1 refer to different files.\n- Limit punctuation in filenames you create to period, dash, and underscore. Do not embed spaces; use underscores to represent them.\n- Linux has no concept of a \"file extension\". You may name files any way you like; contents are determined by other means.\n\n## Some Helpful Shortcuts\n\n| Shortcut | Result |\n|---|---|\n| `cd` | Changes the working directory to your home directory. |\n| `cd -` | Changes the working directory to the previous working directory. |\n| `cd ~user_name` | Changes the working directory to the home directory of user_name, e.g. `cd ~bob`. |\n\n## Summary\n\n- Linux organizes files in a single hierarchical directory tree rooted at `/`, regardless of how many storage devices are attached.\n- The current working directory is where we \"stand\" in the tree; `pwd` displays it and login starts us in our home directory.\n- `ls` lists the contents of the current working directory.\n- `cd` changes the working directory using either absolute pathnames (from the root) or relative pathnames (from where we stand).\n- The notations `.` and `..` refer to the working directory and its parent; `./` can almost always be omitted.\n- Handy shortcuts: `cd` alone goes home, `cd -` goes back to the previous directory, and `cd ~user_name` goes to another user's home.",
+      "exercises": [
+        {
+          "title": "Where do you stand?",
+          "slug": "where-do-you-stand",
+          "order": 1,
+          "instructions": "When a session starts you stand in your home directory. Confirm it with `pwd`, then list what is there with `ls`.\n\n```bash\npwd\nls\n```",
+          "hint": "The home directory of the root user is /root, so pwd should print exactly that.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "output_matches",
+              "target": "pwd",
+              "expected_value": "^/root/?$",
+              "points_weight": 7,
+              "feedback_on_failure": "Run `pwd` at the start of the session; it must print /root (type `cd` with no arguments to get back home first)."
+            },
+            {
+              "rule_type": "command_exit_zero",
+              "target": "ls",
+              "expected_value": "",
+              "points_weight": 3,
+              "feedback_on_failure": "Run `ls` in your home directory to list its contents."
+            }
+          ]
+        },
+        {
+          "title": "Absolute and relative travel",
+          "slug": "absolute-and-relative-travel",
+          "order": 2,
+          "instructions": "Navigate the tree with both kinds of pathnames. Change into the system binaries directory with an absolute pathname, confirm with `pwd`, move one level up with the `..` notation, and then use `cd -` to jump back to the previous working directory.\n\n```bash\ncd /bin\npwd\ncd ..\ncd -\n```",
+          "hint": "`cd ..` uses the dot-dot relative notation and `cd -` returns to the directory you were in before.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "command_exit_zero",
+              "target": "cd /bin",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Run `cd /bin` to change directory using an absolute pathname."
+            },
+            {
+              "rule_type": "command_exit_zero",
+              "target": "cd ..",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Run `cd ..` to move to the parent directory using the dot-dot notation."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Chapter 3: Exploring the System",
+      "slug": "tlcl-ch03-exploring-the-system",
+      "order": 3,
+      "is_published": true,
+      "description": "Use ls options and long format to inspect file attributes, determine file types with file, and read plain-text configuration files with a pager. Tour the standard directories of a Linux system.",
+      "content": "# Chapter 3: Exploring the System\n\nThis chapter adds three more commands — `ls` (list directory contents), `file` (determine file type), and `less` (view file contents) — and takes a guided tour of the Linux file system.\n\n## More Fun with ls\n\nBesides the current working directory, we can list any directory, and even multiple directories at once (`ls ~ /usr`). By adding `-l` we change the output to the **long format**, which reveals far more detail.\n\n## Options and Arguments\n\nA very important point about how most commands work:\n\n```bash\ncommand -options arguments\n```\n\n**Options** modify a command's behavior; **arguments** are the items the command acts on. Short options are a single character preceded by a dash (`-l`); many commands, including those from the GNU Project, also support **long options**, a word preceded by two dashes (`--reverse`). Multiple short options can be strung together, as in `ls -lt --reverse`. Command options, like filenames in Linux, are case sensitive. Common `ls` options:\n\n| Option | Long option | Meaning |\n|---|---|---|\n| `-a` | `--all` | List all files, even hidden ones (names beginning with a period). |\n| `-d` | `--directory` | List the directory itself rather than its contents. |\n| `-F` | `--classify` | Append an indicator character (e.g. `/` for a directory). |\n| `-h` | `--human-readable` | Display file sizes in human-readable format rather than in bytes. |\n| `-l` |  | Display results in long format. |\n| `-r` | `--reverse` | Display the results in reverse order. |\n| `-S` |  | Sort results by file size. |\n| `-t` |  | Sort by modification time. |\n\nIn long format the fields are: **access rights** (a leading `-` means a regular file, `d` a directory), the file's number of hard links, the owner's username, the owning group, the size in bytes, the date and time of last modification, and the name.\n\n## Determining a File's Type with file\n\nFilenames in Linux are not required to reflect a file's contents. The `file` command prints a brief description of what a file contains:\n\n```bash\n[me@linuxbox ~]$ file picture.jpg\npicture.jpg: JPEG image data, JFIF standard 1.01\n```\n\nA common idea in Linux is that **\"everything is a file\"**.\n\n## Viewing File Contents with less\n\nMany files that contain system settings (**configuration files**) are stored as plain text, and `less` is a **pager** that displays them page by page, both forward and backward:\n\n```bash\n[me@linuxbox ~]$ less /etc/passwd\n```\n\nPress q to quit. On the course terminal the available pager is BusyBox `more`, which pages forward only.\n\n> Less Is More: The `less` program was designed as an improved replacement of an earlier Unix program called `more`. The name is a play on the phrase \"less is more\". Whereas `more` could only page forward, `less` allows paging both directions.\n\n## Taking a Guided Tour\n\nThe file system layout is specified in a published standard called the **Linux Filesystem Hierarchy Standard**. As we tour: `cd` into a directory, `ls -l` it, use `file` on interesting files, and view text files with a pager. Key directories:\n\n| Directory | Comments |\n|---|---|\n| `/` | The root directory, where everything begins. |\n| `/bin` | Programs that must be present for the system to boot and run. |\n| `/dev` | Device nodes; \"everything is a file\" also applies to devices. |\n| `/etc` | All the system-wide configuration files, e.g. `/etc/passwd`. |\n| `/home` | Each user's home directory; ordinary users can write files only here. |\n| `/proc` | A virtual file system maintained by the kernel; peepholes into it. |\n| `/sbin` | \"System\" binaries reserved for the superuser. |\n| `/tmp` | Storage of temporary, transient files. |\n| `/usr` | The largest tree: programs and support files used by regular users. |\n| `/var` | Data likely to change — databases, spool files, mail, and the `/var/log` log files. |\n\n## Summary\n\n- Most commands follow the pattern `command -options arguments`; short options can be strung together and long options start with `--`.\n- `ls -l` reveals the long-format fields: access rights, hard link count, owner, group, size, modification date, and name.\n- `file` determines a file's type, because filenames do not have to reflect contents — \"everything is a file\".\n- Pagers like `less` let us read the plain-text configuration files that reveal how the system works.\n- The tree follows the Filesystem Hierarchy Standard, from `/bin` and `/etc` to `/proc` and `/var/log`.\n- The system is open for examination and study — in Linux there are no secrets.",
+      "exercises": [
+        {
+          "title": "Long listings",
+          "slug": "long-listings",
+          "order": 1,
+          "instructions": "Explore the system configuration directory with a long-format listing, then sort it by file size using strung-together short options.\n\n```bash\nls -l /etc\nls -lS /etc\n```",
+          "hint": "The -l option produces the long format; add S right after it to also sort by file size.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "output_matches",
+              "target": "ls -l /etc",
+              "expected_value": "total",
+              "points_weight": 6,
+              "feedback_on_failure": "Run `ls -l /etc` — a long-format listing includes a total line and one line per file."
+            },
+            {
+              "rule_type": "command_exit_zero",
+              "target": "ls -lS /etc",
+              "expected_value": "",
+              "points_weight": 4,
+              "feedback_on_failure": "Run `ls -lS /etc` to combine the long-format and sort-by-size options."
+            }
+          ]
+        },
+        {
+          "title": "What is inside a file?",
+          "slug": "what-is-inside-a-file",
+          "order": 2,
+          "instructions": "Filenames in Linux are not required to reflect contents, so ask the `file` command what a configuration file holds, then display the short file with `cat`.\n\n```bash\nfile /etc/hostname\ncat /etc/hostname\n```",
+          "hint": "`file` prints a one-line type description; plain human-readable files report as text.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "output_matches",
+              "target": "file /etc/hostname",
+              "expected_value": "text",
+              "points_weight": 6,
+              "feedback_on_failure": "Run `file /etc/hostname`; the description should say the file contains text."
+            },
+            {
+              "rule_type": "command_exit_zero",
+              "target": "cat /etc/hostname",
+              "expected_value": "",
+              "points_weight": 4,
+              "feedback_on_failure": "Run `cat /etc/hostname` to copy the file to standard output."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Chapter 4: Manipulating Files and Directories",
+      "slug": "tlcl-ch04-manipulating-files-and-directories",
+      "order": 4,
+      "is_published": true,
+      "description": "Create, copy, move, rename, and remove files and directories with mkdir, cp, mv, and rm, link them with ln, and select groups of files with wildcards.",
+      "content": "# Chapter 4: Manipulating Files and Directories\n\nThis chapter introduces five of the most frequently used Linux commands: `cp` (copy files and directories), `mv` (move/rename), `mkdir` (create directories), `rm` (remove), and `ln` (create hard and symbolic links). They beat a graphical file manager for power: `cp -u *.html destination` copies only HTML files missing or newer at the destination.\n\n## Wildcards\n\nThe shell provides special characters called **wildcards** to specify groups of filenames rapidly. Using wildcards is also known as **globbing**.\n\n| Wildcard | Meaning |\n|---|---|\n| `*` | Matches any characters |\n| `?` | Matches any single character |\n| `[characters]` | Matches any character that is a member of the set |\n| `[!characters]` | Matches any character that is not a member of the set |\n| `[[:class:]]` | Matches any character in the specified class |\n\nCommon character classes: `[:alnum:]`, `[:alpha:]`, `[:digit:]`, `[:lower:]`, `[:upper:]`. Patterns: `g*` matches any file beginning with g; `b*.txt` any file starting with b and ending in .txt.\n\n## mkdir, cp, mv, rm\n\n`mkdir dir1 dir2 dir3` creates one or more directories in a single command.\n\n`cp item1 item2` copies one item to another; `cp item... directory` copies multiple items into a directory.\n\n| Option | Meaning |\n|---|---|\n| `-a, --archive` | Copy files and all their attributes, including ownerships and permissions. |\n| `-i, --interactive` | Prompt before overwriting; without it, cp silently overwrites. |\n| `-r, --recursive` | Recursively copy directories and their contents. |\n| `-u, --update` | Only copy files that don't exist or are newer in the destination. |\n| `-v, --verbose` | Display informative messages as the copy is performed. |\n\n`mv item1 item2` moves or renames item1 to item2; `mv item... directory` moves items into a directory. Either way the original filename no longer exists. mv shares `-i`, `-u`, and `-v` with cp. If dir2 does not exist, `mv dir1 dir2` renames dir1 to dir2; if it exists, dir1 moves inside.\n\n`rm item...` removes (deletes) files and directories.\n\n| Option | Meaning |\n|---|---|\n| `-i, --interactive` | Prompt before deleting; without it, rm silently deletes. |\n| `-r, --recursive` | Recursively delete directories and their contents. |\n| `-f, --force` | Ignore nonexistent files and do not prompt. |\n| `-v, --verbose` | Display informative messages as the deletion is performed. |\n\n> Be Careful with rm! Linux has no undelete command — once you delete something with rm, it's gone. A stray space in `rm * .html` deletes every file in the directory. When using wildcards with rm, test the wildcard first with `ls`.\n\n## ln—Create Links\n\n```bash\nln file link        # creates a hard link\nln -s item link     # creates a symbolic link\n```\n\nA **hard link** is an additional directory entry (name part) for the same inode (data part). It cannot reference a file outside its own file system or a directory. `ls -i` reveals the **inode number**, confirming that `fun` and `fun-hard` share one. A **symbolic link** is a special file containing a text pointer to the target — like a Windows shortcut, though it predates it. Delete the target and the link is **broken**; deleting a link removes only the link, not the target.\n\n## Building a Playground\n\nA safe place to practice:\n\n```bash\n[me@linuxbox playground]$ cp /etc/passwd .\n[me@linuxbox playground]$ mv passwd fun\n[me@linuxbox playground]$ mv fun dir1\n[me@linuxbox playground]$ ln fun fun-hard\n[me@linuxbox playground]$ ln -s fun fun-sym\n[me@linuxbox playground]$ ln -s dir1 dir1-sym\n[me@linuxbox playground]$ ls -l\ntotal 16\ndrwxrwxr-x 2 me me 4096 dir1\nlrwxrwxrwx 1 me me    4 dir1-sym -> dir1\n-rw-r--r-- 4 me me 1650 fun\nlrwxrwxrwx 1 me me    3 fun-sym -> fun\n```\n\nThe leading `l` marks a symbolic link and `->` shows its target. Finally, `rm -r playground` removes the whole tree.\n\n## Summary\n\n- Wildcards (`*`, `?`, `[characters]`, `[!characters]`, `[[:class:]]`) select groups of filenames by pattern.\n- `mkdir` creates directories and accepts multiple arguments in one command.\n- `cp` copies; `-i` prompts, `-r` handles directories, `-u` copies only newer or missing files.\n- `mv` both moves and renames; the original name ceases to exist afterward.\n- `rm` deletes silently and permanently; use `-r` for directories and test wildcards with `ls` first.\n- `ln` creates hard links (extra names sharing an inode) and, with `-s`, symbolic links (text pointers that break when the target goes).\n- Perform the playground exercise over and over until it makes sense.",
+      "exercises": [
+        {
+          "title": "Build a playground",
+          "slug": "build-a-playground",
+          "order": 1,
+          "instructions": "Set up the book's safe place to practice. Make a playground directory in your home, create dir1 and dir2 inside it, create a data file with `touch`, and copy it with `cp`.\n\n```bash\ncd\nmkdir playground\ncd playground\nmkdir dir1 dir2\ntouch fun\ncp fun fun-copy\n```",
+          "hint": "Use `touch` to create an empty file and `cp` with two arguments to copy it under a new name.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/playground/fun",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "From /root/playground run `touch fun` to create the data file."
+            },
+            {
+              "rule_type": "file_exists",
+              "target": "/root/playground/fun-copy",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "From /root/playground run `cp fun fun-copy` to copy the file."
+            }
+          ]
+        },
+        {
+          "title": "Wildcards and links",
+          "slug": "wildcards-and-links",
+          "order": 2,
+          "instructions": "Inside the playground, create some files, use the `*.txt` wildcard with `cp`, create a symbolic link with `ln -s`, and remove the HTML file so you can confirm it is gone with `ls`.\n\n```bash\ncd ~/playground\ntouch alpha.txt beta.txt gamma.html\ncp *.txt all-texts\nln -s alpha.txt alpha-link\nrm gamma.html\nls -l\n```",
+          "hint": "The wildcard `*.txt` expands to every file ending in .txt; `ln -s item link` creates the symbolic link.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/playground/all-texts",
+              "expected_value": "",
+              "points_weight": 4,
+              "feedback_on_failure": "Run `cp *.txt all-texts` inside /root/playground — the wildcard matches alpha.txt and beta.txt."
+            },
+            {
+              "rule_type": "file_exists",
+              "target": "/root/playground/alpha-link",
+              "expected_value": "",
+              "points_weight": 3,
+              "feedback_on_failure": "Run `ln -s alpha.txt alpha-link` inside /root/playground to create the symbolic link."
+            },
+            {
+              "rule_type": "file_not_exists",
+              "target": "/root/playground/gamma.html",
+              "expected_value": "",
+              "points_weight": 3,
+              "feedback_on_failure": "Run `rm gamma.html` inside /root/playground to remove the file."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Chapter 5: Working with Commands",
+      "slug": "tlcl-ch05-working-with-commands",
+      "order": 5,
+      "is_published": true,
+      "description": "Tell apart the four kinds of commands with type and which, find documentation with help and --help, and build your own commands with alias.",
+      "content": "# Chapter 5: Working with Commands\n\nThis chapter removes some of the mystery from commands and even creates our own, using `type`, `which`, `help`, `man`, `apropos`, `whatis`, and `alias`.\n\n## What Exactly Are Commands?\n\nA command can be one of four different things:\n\n- An **executable program**, like the files in `/usr/bin` — compiled binaries such as those written in C, or scripts written in languages like the shell, Perl, Python, or Ruby.\n- A command **built into the shell itself**; bash supports a number of commands internally called **shell builtins**. The `cd` command, for example, is a shell builtin.\n- A **shell function** — a miniature shell script incorporated into the environment.\n- An **alias** — a command we can define ourselves, built from other commands.\n\n## Identifying Commands\n\nThe `type` builtin displays the kind of command the shell will execute:\n\n```bash\n[me@linuxbox ~]$ type type\ntype is a shell builtin\n[me@linuxbox ~]$ type ls\nls is aliased to `ls --color=tty'\n[me@linuxbox ~]$ type cp\ncp is /bin/cp\n```\n\nThe `which` command displays the exact location of an executable (`which ls` answers `/bin/ls`) but works **only** for executables. Given a builtin like `cd` it answers \"no cd in (...)\" — a fancy way of saying \"command not found\".\n\n## Getting a Command's Documentation\n\n- **help** — bash's built-in help for each shell builtin: `help cd`. In the syntax it prints, square brackets `[...]` indicate optional items and a vertical bar `|` indicates mutually exclusive items.\n- **--help** — many executable programs display usage information, e.g. `mkdir --help`. Some don't support it, but try anyway; the error message often reveals the same information.\n- **man** — most command line programs provide a formal piece of documentation called a **manual page**, viewed with the paging program `man`: `man ls`. Man pages hold a title, a synopsis, a description of the purpose, and a listing of options — a reference, not a tutorial.\n- **apropos** — searches the list of man pages for a term: `apropos partition` lists every manual page mentioning partitions. `man -k` performs the same function.\n- **whatis** — prints the name and a one-line description of a matching man page: `whatis ls` gives `ls (1) - list directory contents`.\n- **info** — the GNU Project's alternative to man pages: hyperlinked like web pages, tree-structured into nodes of a single topic each. `info coreutils` opens the package menu.\n\nThe manual is broken into sections:\n\n| Section | Contents |\n|---|---|\n| 1 | User commands |\n| 2 | Programming interfaces for kernel system calls |\n| 3 | Programming interfaces to the C library |\n| 4 | Special files such as device nodes and drivers |\n| 5 | File formats |\n| 6 | Games and amusements |\n| 7 | Miscellaneous |\n| 8 | System administration commands |\n\nTo refer to a specific section, name it first: `man 5 passwd` describes the *format* of the `/etc/passwd` file, not the command. Many packages also install documentation into `/usr/share/doc`.\n\n## Creating Our Own Commands with alias\n\nFirst a small trick: more than one command can go on a line when separated by semicolons — `command1; command2; command3...`:\n\n```bash\n[me@linuxbox ~]$ cd /usr; ls; cd -\nbin games include lib local sbin share src\n/home/me\n```\n\nCheck the name isn't taken with `type` (`test` is a shell builtin — oops; `foo` is free). Then define it:\n\n```bash\n[me@linuxbox ~]$ alias foo='cd /usr; ls; cd -'\n[me@linuxbox ~]$ type foo\nfoo is aliased to `cd /usr; ls; cd -'\n[me@linuxbox ~]$ unalias foo\n```\n\nThe structure is `alias name='string'` — the name followed immediately (no whitespace allowed) by an equals sign and a quoted string. Aliasing an existing command to add a favorite option is common, as with `ls --color=tty`, and `alias` with no arguments lists them all. One tiny problem: command-line aliases vanish when the shell session ends.\n\n## Summary\n\n- A command is one of four things: an executable program, a shell builtin, a shell function, or an alias.\n- `type` tells which kind the shell will execute; `which` shows an executable's location and nothing else.\n- Documentation comes from `help` (builtins), `--help` (many programs), `man`/`apropos`/`whatis` (the sectioned manual), and `info` (GNU's hyperlinked manuals).\n- `man 5 passwd` names a section explicitly: 1 for user commands, 5 for file formats, 8 for administration.\n- Semicolons chain several commands on one line, and `alias name='string'` turns a chain into a new command.\n- Command-line aliases disappear when the session ends.",
+      "exercises": [
+        {
+          "title": "Identify a command",
+          "slug": "identify-a-command",
+          "order": 1,
+          "instructions": "Find out what the shell will actually execute. Ask `type` about the builtin `cd` and about `ls`, and locate an executable with `which`.\n\n```bash\ntype cd\ntype ls\nwhich ls\n```",
+          "hint": "type reports builtins, aliases, and file paths; which only answers for executable programs.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "output_matches",
+              "target": "type cd",
+              "expected_value": "builtin",
+              "points_weight": 5,
+              "feedback_on_failure": "Run `type cd`; cd is a shell builtin, so the answer should contain the word builtin."
+            },
+            {
+              "rule_type": "output_matches",
+              "target": "which ls",
+              "expected_value": "/ls",
+              "points_weight": 5,
+              "feedback_on_failure": "Run `which ls`; it should print the path of the ls executable, something ending in /ls."
+            }
+          ]
+        },
+        {
+          "title": "Create an alias",
+          "slug": "create-an-alias",
+          "order": 2,
+          "instructions": "Chain commands with semicolons and give the sequence a name. First check the alias name is free with `type`, then define it and confirm it with `type` again.\n\n```bash\ntype ll\nalias ll='ls -l ~'\ntype ll\n```",
+          "hint": "Remember the structure `alias name='string'` with no whitespace around the equals sign.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "command_exit_zero",
+              "target": "alias ll='ls -l ~'",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Run `alias ll='ls -l ~'` exactly as shown to define the alias."
+            },
+            {
+              "rule_type": "output_matches",
+              "target": "type ll",
+              "expected_value": "alias",
+              "points_weight": 5,
+              "feedback_on_failure": "Run `type ll`; while the alias is defined in this session, type reports it as an alias."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Chapter 6: Redirection",
+      "slug": "tlcl-ch06-redirection",
+      "order": 6,
+      "is_published": true,
+      "description": "Redirect stdout, stderr, and stdin with >, >>, 2>, and <, discard output into /dev/null, and chain filters such as sort, grep, wc, head, tail, and tee into pipelines.",
+      "content": "# Chapter 6: Redirection\n\nThis lesson unleashes what may be the coolest feature of the command line: **I/O redirection** — redirecting commands' input and output to and from files, and chaining commands into **pipelines**. We introduce `cat`, `sort`, `uniq`, `grep`, `wc`, `head`, `tail`, and `tee`.\n\n## Standard Input, Output, and Error\n\nPrograms such as `ls` send their results to a special file called **standard output** (**stdout**) and their status and error messages to **standard error** (**stderr**); by default both are linked to the screen. Many programs read from **standard input** (**stdin**), attached to the keyboard. The shell references these streams as **file descriptors 0, 1, and 2**.\n\n## Redirecting Standard Output\n\nTo redirect standard output to a file instead of the screen we use the `>` operator:\n\n```bash\n[me@linuxbox ~]$ ls -l /usr/bin > ls-output.txt\n```\n\nTesting with a nonexistent directory shows a twist:\n\n```bash\n[me@linuxbox ~]$ ls -l /bin/usr > ls-output.txt\nls: cannot access /bin/usr: No such file or directory\n```\n\nThe error still appears, because ls sends errors to standard error, not stdout — and the file now has zero length, because `>` always rewrites the destination from the beginning. A bare `> ls-output.txt` truncates a file or creates an empty one. To append instead, use `>>`: `ls -l /usr/bin >> ls-output.txt`.\n\n## Redirecting Standard Error\n\nStandard error needs its file descriptor number:\n\n```bash\n[me@linuxbox ~]$ ls -l /bin/usr 2> ls-error.txt\n```\n\nTo capture everything in one file, the traditional form performs two redirections — stdout to the file, then descriptor 2 to descriptor 1:\n\n```bash\n[me@linuxbox ~]$ ls -l /bin/usr > ls-output.txt 2>&1\n```\n\n> Notice That the Order of the Redirections Is Significant: The redirection of standard error must occur after redirecting standard output or it doesn't work; written `2>&1 >ls-output.txt`, stderr goes to the screen.\n\nRecent bash versions streamline this to `&>` (and `&>>` to append). Sometimes silence is golden: `/dev/null`, the **bit bucket**, accepts input and does nothing, so `ls -l /bin/usr 2> /dev/null` discards the error.\n\n## Redirecting Standard Input\n\n`cat` reads one or more files and copies them to standard output. Given no arguments it reads stdin, echoing each line until ctrl-D signals **end of file (EOF)**. It can join files (`cat movie.mpeg.0* > movie.mpeg`; wildcards expand sorted) and create text files:\n\n```bash\n[me@linuxbox ~]$ cat > lazy_dog.txt\nThe quick brown fox jumped over the lazy dog.\n```\n\nType ctrl-D and we have implemented the world's dumbest word processor. The `<` operator changes the source of stdin from the keyboard to a file: `cat < lazy_dog.txt`.\n\n## Pipelines and Filters\n\nUsing the **pipe operator** `|`, one command's stdout becomes another command's stdin: `command1 | command2`. Commands used this way are **filters** — they take input, change it, and output it.\n\n```bash\n[me@linuxbox ~]$ ls /bin /usr/bin | sort | uniq | less\n```\n\n`sort` merges the listings into one sorted list; `uniq` removes duplicates (`-d` shows only the duplicates). `wc` prints line, word, and byte counts; `wc -l` in a pipeline counts things. `grep pattern filename` prints matching lines; `-i` ignores case, `-v` inverts the match. `head` prints the first 10 lines and `tail` the last 10, adjustable with `-n`; `tail -f` follows a growing log file in real time until ctrl-C. `tee` creates a \"tee\" fitting on our pipe, copying stdin to both stdout and one or more files:\n\n```bash\n[me@linuxbox ~]$ ls /usr/bin | tee ls.txt | grep zip\nbunzip2\nbzip2\ngunzip\n```\n\n> The Difference Between > and |: Redirection connects a command with a file; a pipeline connects one command's output to another command's input. A reader, as superuser in /usr/bin, typed `ls > less` — `>` silently overwrote the less *program* with the listing text. Treat it with a lot of respect.\n\n## Summary\n\n- Programs write results to stdout, errors to stderr, and read stdin: file descriptors 0, 1, and 2.\n- `>` redirects stdout and always rewrites the destination from the beginning; `>>` appends; a bare `>` truncates a file.\n- `2>` redirects stderr; `> file 2>&1` captures both, and the order matters; bash also offers `&>` and `&>>`.\n- `/dev/null` is the bit bucket that discards any output sent to it.\n- `<` redirects a file into stdin; `cat` with no arguments reads stdin — \"the world's dumbest word processor\".\n- Pipelines chain filters — `sort`, `uniq`, `grep`, `wc`, `head`, `tail`, and `tee` — transforming data in transit.",
+      "exercises": [
+        {
+          "title": "The world's dumbest word processor",
+          "slug": "worlds-dumbest-word-processor",
+          "order": 1,
+          "instructions": "Create a text file by redirecting output with `>`, then append a second line with `>>` instead of overwriting, and read the file back with `cat`.\n\n```bash\ncd\necho 'The quick brown fox jumped over the lazy dog.' > lazy_dog.txt\necho 'A second line appended.' >> lazy_dog.txt\ncat lazy_dog.txt\n```",
+          "hint": "A single `>` rewrites the file from the beginning; `>>` adds to the end.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/lazy_dog.txt",
+              "expected_value": "",
+              "points_weight": 4,
+              "feedback_on_failure": "Run `echo 'The quick brown fox jumped over the lazy dog.' > ~/lazy_dog.txt` to create the file by redirection."
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/lazy_dog.txt",
+              "expected_value": "lazy dog",
+              "points_weight": 3,
+              "feedback_on_failure": "The file must contain the fox sentence — write it with `> lazy_dog.txt`."
+            },
+            {
+              "rule_type": "file_contains",
+              "target": "/root/lazy_dog.txt",
+              "expected_value": "second line",
+              "points_weight": 3,
+              "feedback_on_failure": "Run `echo 'A second line appended.' >> ~/lazy_dog.txt` to append with the >> operator."
+            }
+          ]
+        },
+        {
+          "title": "Redirect stderr and build a pipeline",
+          "slug": "redirect-stderr-and-pipeline",
+          "order": 2,
+          "instructions": "Send a failing command's error message into a file with `2>` instead of the screen, then pipe `cat` through `grep` and count the matching lines with `wc -l`.\n\n```bash\ncd\nls -l /bin/usr > ls-output.txt 2> ls-error.txt\ncat /etc/passwd | grep root | wc -l\n```",
+          "hint": "Error text goes to file descriptor 2, so `2> ls-error.txt` catches it; the pipeline ends by printing a line count.",
+          "points": 10,
+          "verification_rules": [
+            {
+              "rule_type": "file_exists",
+              "target": "/root/ls-error.txt",
+              "expected_value": "",
+              "points_weight": 5,
+              "feedback_on_failure": "Run `ls -l /bin/usr 2> ls-error.txt` in /root; the nonexistent directory makes ls write its error to the file."
+            },
+            {
+              "rule_type": "output_matches",
+              "target": "cat /etc/passwd | grep root | wc -l",
+              "expected_value": "[1-9]",
+              "points_weight": 5,
+              "feedback_on_failure": "Run `cat /etc/passwd | grep root | wc -l`; the pipeline must print a count greater than zero."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
